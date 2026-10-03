@@ -49,6 +49,18 @@ Use Node.js 22 or later and Java 21 or later. For local Vite, set `VITE_API_BASE
 
 Set **backend-only** `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables before startup to seed an admin. The password must be 12–128 characters. Provisioning runs once for a new email, preserves an existing admin on restart, and refuses to promote a public user with the same email. Use a fresh provisioning email. Remove these variables after provisioning if desired; the persisted account remains. Never prefix secrets with `VITE_`, commit them, or expose an admin signup form. There is no role-change API. Admin Dashboard features are unchanged.
 
+## Admin operations
+
+The admin console reads `/api/admin/analytics` and `/api/admin/users/{id}`. Both require a persisted `ADMIN` account; ordinary users receive 403 and anonymous requests receive 401. Use trusted backend admin provisioning described above, then sign in normally and open **Admin Dashboard** in the sidebar. No public role selection or role-change endpoint exists.
+
+- **Overview:** all-account totals, 14-day UTC activity chart with submissions/signup toggle, outcome donut, category completion bars, configured quotas, recorded storage, and current database probe latency.
+- **People:** search names/emails, filter learners/admins, inspect points, solved problems, attempts, databases, unexpired sessions, and recent submissions for one account.
+- **Workspaces:** named owners, status, creation date, and recorded storage versus allocation; legacy demo resources are clearly unassigned.
+- **Problems:** unique solvers, attempts, acceptance rate, and query errors by problem, with difficulty filtering.
+- **Activity:** recent submission outcomes and awarded points, with outcome filtering. Original SQL query text, database credentials, internal schema IDs, password hashes, and session tokens are not returned.
+
+Account/workspace tables show the latest 200 records; submission lists show the latest 50. Summary metrics cover all records. Acceptance includes repeat submissions; solved counts represent distinct account–problem pairs, so they may exceed the number of catalogue problems. Empty chart dates show zero. Refresh retrieves a consistent PostgreSQL snapshot. Storage is the last measurement recorded by workspace operations, rather than an expensive scan of every database on dashboard load. Database connectivity does not represent a full Render/Vercel uptime check.
+
 ## 3. Deploy (free-tier friendly)
 
 - Backend: create a Render Blueprint from `render.yaml`, then set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `CORS_ALLOWED_ORIGINS`. Keep `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAME_SITE=Lax` in production. Render's public health check is `/api/health`.

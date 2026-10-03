@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS platform.submissions (
   submitted_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_submissions_user ON platform.submissions(user_id, submitted_at);
+CREATE INDEX IF NOT EXISTS idx_submissions_time ON platform.submissions(submitted_at);
 
 CREATE TABLE IF NOT EXISTS platform.user_problem_progress (
   user_id VARCHAR(100) NOT NULL,

@@ -83,3 +83,15 @@ test('network errors return a controlled response without leaking configuration'
   assert.equal(result.code, 502)
   assert.doesNotMatch(JSON.stringify(result.body), /secret|private-backend/)
 })
+
+test('admin analytics and account detail routes reach the backend with the session cookie', async () => {
+  process.env.BACKEND_API_URL = 'https://backend.example'
+  const targets = []
+  globalThis.fetch = async (url, options) => { targets.push(url.pathname); assert.equal(options.headers.get('cookie'), 'cloudsql_session=admin'); return new Response('{}') }
+  for (const path of ['admin/analytics', 'admin/users/00000000-0000-0000-0000-000000000001']) {
+    const result = response()
+    await handler({ method: 'GET', query: { path }, headers: { cookie: 'cloudsql_session=admin' } }, result)
+    assert.equal(result.code, 200)
+  }
+  assert.deepEqual(targets, ['/api/admin/analytics', '/api/admin/users/00000000-0000-0000-0000-000000000001'])
+})
