@@ -25,17 +25,21 @@ public class H2ProblemDatabaseRegistry implements ProblemDatabaseRegistry {
 
     @PostConstruct
     void initialize() {
-        problemRepository.findAll().forEach(problem -> {
+        problemRepository.findAll().forEach(problem -> dataSources.put(problem.id(), createDatabase(problem)));
+    }
+    private DataSource createDatabase(com.cloudsql.lab.problem.model.ProblemDefinition problem) {
             String url = "jdbc:h2:mem:practice_" + problem.id() + "_" + java.util.UUID.randomUUID() + ";DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false";
             DataSource dataSource = new DriverManagerDataSource(url, "sa", "");
-            new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).execute(dataSource);
-            dataSources.put(problem.id(), dataSource);
-        });
+            if (problem.seedScript() == null) {
+                try (Connection connection = dataSource.getConnection()) { com.cloudsql.lab.problem.StructuredProblemDataset.populate(connection, problem.tables()); }
+                catch (SQLException exception) { throw new IllegalStateException("Could not initialize question dataset", exception); }
+            } else new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).execute(dataSource);
+            return dataSource;
     }
 
     @Override
     public Connection getConnection(long problemId) throws SQLException {
-        DataSource dataSource = dataSources.get(problemId);
+        DataSource dataSource = dataSources.computeIfAbsent(problemId, id -> problemRepository.findById(id).map(this::createDatabase).orElse(null));
         if (dataSource == null) throw new IllegalArgumentException("No execution database exists for problem " + problemId + ".");
         return dataSource.getConnection();
     }

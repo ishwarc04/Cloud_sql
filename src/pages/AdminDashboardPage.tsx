@@ -4,6 +4,7 @@ import { adminService } from '../features/admin/adminService'
 import type { AdminAnalytics, AdminSubmission, AdminUserDetail, AdminWorkspace } from '../features/admin/types'
 import { ActivityChart, CategoryChart, OutcomeChart } from '../features/admin/AdminCharts'
 import { formatBytes, storagePercent } from '../features/databases/format'
+import { AdminCreatePanel } from '../features/admin/AdminCreatePanel'
 
 type Tab = 'Overview' | 'People' | 'Workspaces' | 'Problems' | 'Activity'
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : 'No submissions yet'
@@ -29,6 +30,8 @@ export function AdminDashboardPage() {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const detailPanel = useRef<HTMLElement>(null)
+  const [creating, setCreating] = useState<'user' | 'question' | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => {
     let active = true
     adminService.analytics().then(snapshot => { if (active) { setData(snapshot); setError(null) } })
@@ -60,6 +63,9 @@ export function AdminDashboardPage() {
   ]
   return <section className="page ops-page">
     <header className="page-header"><div><span className="eyebrow">Platform operations</span><h1>Admin Dashboard</h1><p>Accounts, learning activity, and cloud resources in one place.</p></div><div className="ops-header-actions"><span className="ops-live"><i />Database connected</span><button className="secondary-button" disabled={refreshing} onClick={refresh}><Icon name="refresh" />{refreshing ? 'Refreshing…' : 'Refresh'}</button></div></header>
+    <div className="ops-action-bar"><span>Manage learners and your SQL catalogue</span><div><button className="secondary-button" onClick={() => { setCreating('user'); setNotice(null) }}><Icon name="users" />Create learner</button><button className="primary-button" onClick={() => { setCreating('question'); setNotice(null) }}>+ Add question</button></div></div>
+    {notice && <div className="ops-success-notice" role="status">{notice}<button className="ops-text-button" onClick={() => setNotice(null)}>Dismiss</button></div>}
+    {creating && <AdminCreatePanel key={creating} kind={creating} onClose={() => setCreating(null)} onCreated={message => { setCreating(null); setNotice(message); refresh() }} />}
     <div className="ops-snapshot"><span>Updated {date(data.generatedAt)}</span><span>Persisted platform snapshot · {s.databaseLatencyMs} ms database probe</span></div>
     {error && <div className="database-alert" role="alert">Refresh failed: {error}. Showing the last successful snapshot.<button onClick={refresh}>Retry</button></div>}
     <div className="ops-metrics">{cards.map(card => <article className="ops-card" key={card.label}><span className="ops-metric-label"><Icon name={card.icon} />{card.label}</span><strong>{card.value}</strong><small>{card.detail}</small></article>)}</div>

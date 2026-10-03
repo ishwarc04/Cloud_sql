@@ -36,7 +36,7 @@ class AdminApiIntegrationTest {
 
         HttpResponse<String> databases = get("/api/admin/databases");
         assertThat(databases.statusCode()).isEqualTo(200);
-        assertThat(databases.body()).contains("Admin Visibility Test", auth.resolve(cookie.substring(cookie.indexOf('=') + 1)).id(), databaseId,
+        assertThat(databases.body()).contains("Admin Visibility Test", auth.resolve(learnerCookie.substring(learnerCookie.indexOf('=') + 1)).id(), databaseId,
                 "storageUsedBytes", "storageLimitBytes");
         assertThat(databases.body()).doesNotContain("internalWorkspaceId", "jdbc:h2", "data/workspaces", "password", "connection");
 
@@ -64,6 +64,7 @@ class AdminApiIntegrationTest {
     }
 
     private String cookie;
+    private String learnerCookie;
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
     @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.auth.PasswordHasher passwords;
     @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.auth.AuthService auth;
@@ -72,9 +73,10 @@ class AdminApiIntegrationTest {
         String email = java.util.UUID.randomUUID() + "@example.test";
         new com.cloudsql.lab.auth.AdminProvisioner(jdbc, passwords, email, com.cloudsql.lab.TestAccounts.PASSWORD).run(null);
         cookie = com.cloudsql.lab.TestAccounts.login(port, email);
+        learnerCookie = com.cloudsql.lab.TestAccounts.signup(port);
     }
     private HttpRequest.Builder requestBuilder(URI uri) {
-        return HttpRequest.newBuilder(uri).header("Cookie", cookie).header("X-CloudSQL-Request", "1");
+        return HttpRequest.newBuilder(uri).header("Cookie", uri.getPath().startsWith("/api/admin") ? cookie : learnerCookie).header("X-CloudSQL-Request", "1");
     }
     private String baseUrl() {
         return "http://127.0.0.1:" + port;

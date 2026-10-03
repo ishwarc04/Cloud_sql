@@ -3,7 +3,7 @@ export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
   response.setHeader('X-Content-Type-Options', 'nosniff')
   const path = request.query?.path
-  if (typeof path !== 'string' || !/^(auth\/(signup|login|logout|me)|health|dashboard|problems(?:\/\d+(?:\/(execute|submit))?)?|databases(?:\/[a-f0-9-]+(?:\/(execute|schema))?)?|admin\/(overview|databases|analytics|users\/[a-f0-9-]+))$/.test(path)) {
+  if (typeof path !== 'string' || !/^(auth\/(signup|login|logout|me)|health|dashboard|problems(?:\/\d+(?:\/(execute|submit))?)?|databases(?:\/[a-f0-9-]+(?:\/(execute|schema))?)?|admin\/(overview|databases|analytics|problems|users(?:\/[a-f0-9-]+)?))$/.test(path)) {
     return response.status(404).json({ error: 'API route not found.' })
   }
   if (!['GET', 'POST', 'DELETE', 'OPTIONS', 'HEAD'].includes(request.method)) {

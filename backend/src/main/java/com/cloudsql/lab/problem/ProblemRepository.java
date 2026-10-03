@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class ProblemRepository {
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
+    public ProblemRepository(org.springframework.jdbc.core.JdbcTemplate jdbc) { this.jdbc = jdbc; }
     private final List<ProblemDefinition> problems = java.util.stream.Stream.concat(List.of(
             new ProblemDefinition(1, "second-highest-salary", "Second Highest Salary", "Medium", "Aggregation",
                     "Return the second highest distinct salary from the employees table. Name the result second_highest_salary. If no second salary exists, return null.",
@@ -37,10 +40,15 @@ public class ProblemRepository {
     ).stream(), OriginalProblems.all().stream()).toList();
 
     public List<ProblemDefinition> findAll() {
-        return problems;
+        return java.util.stream.Stream.concat(problems.stream(), jdbc.query("SELECT id, definition FROM platform.custom_problems ORDER BY id", (rs, row) -> decode(rs.getLong("id"), rs.getString("definition"))).stream()).toList();
     }
 
     public Optional<ProblemDefinition> findById(long id) {
-        return problems.stream().filter(problem -> problem.id() == id).findFirst();
+        if (id < 1000) return problems.stream().filter(problem -> problem.id() == id).findFirst();
+        return jdbc.query("SELECT id, definition FROM platform.custom_problems WHERE id = ?", (rs, row) -> decode(rs.getLong("id"), rs.getString("definition")), id).stream().findFirst();
+    }
+    private ProblemDefinition decode(long id, String value) {
+        ProblemDefinition p = json.readValue(value, ProblemDefinition.class);
+        return new ProblemDefinition(id, p.slug(), p.title(), p.difficulty(), p.topic(), p.description(), p.starterQuery(), p.solutionQuery(), null, p.tables());
     }
 }

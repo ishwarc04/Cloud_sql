@@ -39,7 +39,8 @@ public class PostgresProblemDatabaseRegistry implements ProblemDatabaseRegistry 
                 }
                 if (!seeded) {
                     statement.execute("SET LOCAL search_path TO " + schema + ", pg_temp");
-                    new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).populate(connection);
+                    if (problem.seedScript() == null) com.cloudsql.lab.problem.StructuredProblemDataset.populate(connection, problem.tables());
+                    else new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).populate(connection);
                 }
                 connection.commit();
             } catch (SQLException exception) {

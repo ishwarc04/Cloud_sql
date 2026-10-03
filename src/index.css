@@ -617,3 +617,36 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .admin-database-row > span:nth-child(4) { display: none; }
   .admin-database-row .database-storage { grid-column: 1 / 3; }
 }
+.ops-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 20px 0; color: var(--text-secondary); }
+.ops-action-bar > div { display: flex; gap: 10px; }
+.ops-action-bar .secondary-button, .ops-action-bar .primary-button { min-height: 36px; height: auto; padding: 0 14px; gap: 8px; font-size: 13px; white-space: nowrap; }
+.ops-action-bar svg { width: 16px; height: 16px; flex-shrink: 0; }
+.ops-create-panel .secondary-button { min-height: 32px; font-size: 12px; padding: 0 12px; }
+.ops-form-footer .primary-button { min-height: 38px; font-size: 13px; padding: 0 16px; }
+.ops-success-notice { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; padding: 16px 20px; border: 1px solid #a7c8ae; background: #edf6ee; color: #28613b; border-radius: 8px; }
+.ops-create-panel { margin-bottom: 24px; }
+.ops-create-form { padding: 24px; }
+.ops-create-form fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ops-create-form label { display: flex; flex-direction: column; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+.ops-create-form input, .ops-create-form textarea, .ops-create-form select { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-weight: 400; box-sizing: border-box; }
+.ops-create-form input:focus, .ops-create-form textarea:focus, .ops-create-form select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ops-create-form small, .ops-dataset-heading p { font-size: 13px; color: var(--text-secondary); font-weight: 400; line-height: 1.5; }
+.ops-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.ops-question-metadata { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 20px; }
+.ops-form-note { display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 20px; background: var(--surface); }
+.ops-dataset-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 12px 0 20px; }
+.ops-dataset-heading h3 { margin: 0 0 8px; font-size: 17px; }
+.ops-dataset-heading p { margin: 0; }
+.ops-dataset-table { padding: 20px; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 20px; background: var(--surface); }
+.ops-dataset-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.ops-dataset-toolbar label { width: 300px; }
+.ops-dataset-toolbar > div { display: flex; gap: 20px; align-items: center; }
+.ops-dataset-grid { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.ops-dataset-grid th, .ops-dataset-grid td { min-width: 150px; padding: 8px; border: 1px solid var(--border); }
+.ops-dataset-grid th:last-child, .ops-dataset-grid td:last-child { min-width: 36px; width: 36px; }
+.ops-dataset-grid th > div { display: flex; gap: 8px; margin-top: 8px; }
+.ops-dataset-grid button { border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 20px; padding: 4px 8px; }
+.ops-dataset-grid button:disabled { opacity: .3; cursor: default; }
+.ops-create-form .ops-sql-input { font-family: var(--font-mono); font-size: 14px; line-height: 1.7; resize: vertical; }
+.ops-form-footer { display: flex; justify-content: space-between; align-items: center; gap: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+.ops-form-footer span { font-size: 13px; color: var(--text-secondary); }

@@ -10,18 +10,19 @@ import { ProblemDetailPage } from '../pages/ProblemDetailPage'
 import { DatabaseListPage } from '../pages/DatabaseListPage'
 import { DatabaseWorkspacePage } from '../pages/DatabaseWorkspacePage'
 import { AdminDashboardPage } from '../pages/AdminDashboardPage'
+import { RoleHome } from './auth/RoleHome'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <AuthPage key="login" mode="login" /> },
   { path: '/signup', element: <AuthPage key="signup" mode="signup" /> },
   {
     path: '/', element: <RequireAuth><AppShell /></RequireAuth>, children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: 'dashboard', element: <UserDashboardPage /> },
-      { path: 'practice', element: <ProblemListPage /> },
-      { path: 'practice/:problemId', element: <ProblemDetailPage /> },
-      { path: 'databases', element: <DatabaseListPage /> },
-      { path: 'databases/:databaseId', element: <DatabaseWorkspacePage /> },
+      { index: true, element: <RoleHome /> },
+      { path: 'dashboard', element: <RequireRole role="user"><UserDashboardPage /></RequireRole> },
+      { path: 'practice', element: <RequireRole role="user"><ProblemListPage /></RequireRole> },
+      { path: 'practice/:problemId', element: <RequireRole role="user"><ProblemDetailPage /></RequireRole> },
+      { path: 'databases', element: <RequireRole role="user"><DatabaseListPage /></RequireRole> },
+      { path: 'databases/:databaseId', element: <RequireRole role="user"><DatabaseWorkspacePage /></RequireRole> },
       { path: 'admin', element: <RequireRole role="admin"><AdminDashboardPage /></RequireRole> },
       { path: 'settings', element: <SettingsPage /> },
     ],

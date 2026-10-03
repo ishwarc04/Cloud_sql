@@ -57,3 +57,11 @@ CREATE TABLE IF NOT EXISTS platform.database_workspaces (
 
 CREATE INDEX IF NOT EXISTS idx_database_workspaces_owner
   ON platform.database_workspaces(owner_user_id);
+
+CREATE SEQUENCE IF NOT EXISTS platform.custom_problem_ids START WITH 1000;
+CREATE TABLE IF NOT EXISTS platform.custom_problems (
+  id BIGINT PRIMARY KEY,
+  definition TEXT NOT NULL,
+  created_by VARCHAR(36) NOT NULL REFERENCES platform.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL
+);

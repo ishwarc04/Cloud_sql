@@ -29,8 +29,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       </div>
       <button className="workspace-switcher" type="button"><span className="workspace-avatar"><Icon name="layers" /></span><span className="workspace-copy"><small>Workspace</small><strong>CloudSQL Lab</strong></span><Icon name="chevron" className="workspace-chevron" /></button>
       <nav className="sidebar-nav" aria-label="Primary navigation">
-        <span className="nav-label">Develop</span>
-        {navigation.map((item) => <NavLink key={item.to} to={item.to} onClick={onClose} className={({ isActive }) => `nav-item ${isActive ? 'is-active' : ''}`}><Icon name={item.icon} /><span>{item.label}</span></NavLink>)}
+        {role === 'user' && <><span className="nav-label">Develop</span>
+        {navigation.map((item) => <NavLink key={item.to} to={item.to} onClick={onClose} className={({ isActive }) => `nav-item ${isActive ? 'is-active' : ''}`}><Icon name={item.icon} /><span>{item.label}</span></NavLink>)}</>}
         {role === 'admin' && <><span className="nav-label nav-label-spaced">Operate</span><NavLink to="/admin" onClick={onClose} className={({ isActive }) => `nav-item ${isActive ? 'is-active' : ''}`}><Icon name="admin" /><span>Admin Dashboard</span><span className="admin-tag">Admin</span></NavLink></>}
       </nav>
       <div className="sidebar-footer">

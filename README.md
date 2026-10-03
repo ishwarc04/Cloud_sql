@@ -47,7 +47,7 @@ Use Node.js 22 or later and Java 21 or later. For local Vite, set `VITE_API_BASE
 
 ### Trusted admin provisioning
 
-Set **backend-only** `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables before startup to seed an admin. The password must be 12–128 characters. Provisioning runs once for a new email, preserves an existing admin on restart, and refuses to promote a public user with the same email. Use a fresh provisioning email. Remove these variables after provisioning if desired; the persisted account remains. Never prefix secrets with `VITE_`, commit them, or expose an admin signup form. There is no role-change API. Admin Dashboard features are unchanged.
+Set **backend-only** `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables before startup to seed an admin. The password must be 12–128 characters. Provisioning runs once for a new email, preserves an existing admin on restart, and refuses to promote a public user with the same email. Use a fresh provisioning email. Remove these variables after provisioning if desired; the persisted account remains. Never prefix secrets with `VITE_`, commit them, or expose an admin signup form. There is no role-change API.
 
 ## Admin operations
 
@@ -71,6 +71,10 @@ Account/workspace tables show the latest 200 records; submission lists show the 
 These are configuration instructions only. No push or deployment occurs automatically.
 
 ## Verification
+
+Admins land directly in `/admin`. Learner dashboard, practice, and personal-database routes and APIs reject ADMIN accounts; admins inspect platform resources through the admin views. **Create learner** creates a USER account with a hashed initial password and keeps the current admin session. No admin creation or role selection is exposed in either signup or the admin form.
+
+**Add question** publishes original SQL questions with a structured dataset editor (up to 6 tables, 12 columns per table, 100 rows per table, and 3,000 cells in total). Supported types are INTEGER, DECIMAL, VARCHAR, DATE, and BOOLEAN. Both the starter SELECT and reference SELECT are validated against the isolated dataset before publication, with a 5-second timeout and 200-row limit. Questions and datasets persist in PostgreSQL and appear immediately in learner practice and admin analytics. Reference answers stay backend-only. Initialization reuses existing dataset schemas on restart. SQL seed scripts cannot be supplied through the admin API.
 
 ```powershell
 cd backend

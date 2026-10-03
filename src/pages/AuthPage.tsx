@@ -10,7 +10,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const from = (location.state as { from?: string } | null)?.from
   const destination = from?.startsWith('/') && !from.startsWith('//') && !['/login', '/signup'].includes(from) ? from : '/dashboard'
   if (loading) return <div className="inline-state">Checking your session…</div>
-  if (user) return <Navigate to={destination} replace />
+  if (user) return <Navigate to={user.role === 'ADMIN' ? '/admin' : destination} replace />
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)

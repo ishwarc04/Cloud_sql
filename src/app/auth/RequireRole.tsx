@@ -7,7 +7,7 @@ export function RequireRole({ role: requiredRole, children }: { role: UserRole; 
   const location = useLocation()
 
   if (role !== requiredRole) {
-    return <Navigate to="/dashboard" replace state={{ blockedPath: location.pathname }} />
+    return <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace state={{ blockedPath: location.pathname }} />
   }
 
   return children
