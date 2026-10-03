@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --prefix frontend",
   "buildCommand": "npm run lint && npm run test:proxy && npm run build",
+  "outputDirectory": "frontend/dist",
   "functions": { "api/proxy.mjs": { "maxDuration": 60 } },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/proxy?path=:path*" },

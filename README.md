@@ -218,13 +218,38 @@ SELECT * FROM books;
 
 Before presenting, ensure Render is running the latest commit and shows **Live**. Refresh the Vercel frontend afterward. A newer frontend with an older backend can show “Not Found” for recently added features.
 
+## Repository layout
+
+```text
+Cloud_sql/
+├── frontend/              React app, assets, Vite/TypeScript config and proxy tests
+│   ├── src/               Pages, features, authentication and layout
+│   ├── public/            Static assets
+│   ├── api/proxy.mjs      Frontend API proxy implementation
+│   ├── tests/             Proxy tests
+│   └── package.json       Frontend dependencies and scripts
+├── backend/               Spring Boot API, Java tests, PostgreSQL initialization
+│   ├── src/main/          Backend application and configuration
+│   ├── src/test/          Backend tests
+│   ├── Dockerfile         Render container build
+│   └── pom.xml            Java dependencies and build
+├── api/proxy.mjs          Thin Vercel entry point importing the frontend proxy
+├── .github/workflows/     Automated build checks
+├── package.json           Convenience scripts forwarding to frontend/
+├── render.yaml            Backend hosting configuration
+├── vercel.json            Frontend build, output and API routing configuration
+└── README.md              Project explanation and setup
+```
+
+Keep Vercel's project Root Directory at the repository root. Its configuration installs dependencies in `frontend/` and serves `frontend/dist`; the small root API entry point preserves existing session routing. Render continues to use `backend/Dockerfile` and the `backend` Docker context. Frontend environment values belong in `frontend/.env.local`; backend examples are in `backend/.env.example`. Local dependency folders, builds, secrets and temporary reference files are excluded from Git.
+
 ## 6. Running and verifying the project
 
 Use Node.js 22 or later, Java 21 or later, and Maven. Production uses the existing Neon/Render/Vercel setup; a new provider account is not required for every feature.
 
 ### Local configuration
 
-Copy `.env.example` to `.env.local` for Vite and set `VITE_API_BASE_URL=http://localhost:8080`. Set backend variables in the terminal starting Spring Boot:
+Copy `frontend/.env.example` to `frontend/.env.local` for Vite and set `VITE_API_BASE_URL=http://localhost:8080`. Set backend variables in the terminal starting Spring Boot:
 
 ```powershell
 $env:DATABASE_URL="jdbc:postgresql://YOUR-NEON-HOST/YOUR-DATABASE?sslmode=require"
@@ -240,7 +265,7 @@ mvn spring-boot:run
 In another terminal at the repository root:
 
 ```powershell
-npm ci
+npm ci --prefix frontend
 npm run dev
 ```
 
@@ -280,23 +305,7 @@ This is a suggested division of development ownership and presentation responsib
 
 **Why this split works:** the four parts cover the service students use, the rules controlling access, the data and resources they consume, and the operations that keep the service observable and deployable. Members 2 and 3 agree on account ownership rules; members 3 and 4 agree on how usage and recovery events appear in monitoring.
 
-## 8. Which part should you take?
-
-**Take Member 4: Cloud operations, deployment, and DevOps.**
-
-You have followed the deployment and monitoring work closely, and this part connects directly to a cloud computing presentation. You can explain the Vercel → Render → Neon architecture, show the Cloud tab, and demonstrate real container builds and automated checks.
-
-Prepare these five things:
-
-1. Explain which responsibility belongs to Vercel, Render, and Neon.
-2. Show requests and latency after a student uses the application.
-3. Run a database probe and explain what the result measures.
-4. Connect an audit event and account usage to an actual student action.
-5. Show the Dockerfile and a passing GitHub Actions run.
-
-Also learn the snapshot and demo-upgrade flow well enough to connect it to recovery and resource accounting. If you prefer hands-on SQL and data work over deployment, Member 3 is the strongest alternative.
-
-## 9. Future scope
+## 8. Future scope
 
 The following are proposed improvements, not claims about features already implemented.
 

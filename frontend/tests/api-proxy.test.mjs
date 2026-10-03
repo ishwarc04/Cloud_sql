@@ -1,6 +1,6 @@
 import test, { afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import handler from '../api/proxy.mjs'
+import handler from '../../api/proxy.mjs'
 
 const originalFetch = globalThis.fetch
 const originalBackend = process.env.BACKEND_API_URL
