@@ -335,6 +335,22 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .submission-verdict p { margin: 0; color: var(--text-secondary); font-size: 10.5px; line-height: 1.45; }
 .null-value { color: var(--text-tertiary); font-size: 9px; font-style: italic; }
 
+/* Small readability increase for practice; editor and line numbers stay aligned. */
+.practice-workspace .problem-detail-header p { font-size: 14px; }
+.practice-workspace .data-scroll table,
+.practice-workspace .result-scroll th { font-size: 10.5px; }
+.practice-workspace .data-scroll th small { font-size: 9px; }
+.practice-workspace .schema-table-name strong { font-size: 11px; }
+.practice-workspace .panel-heading strong { font-size: 12.5px; }
+.practice-workspace .editor-shell textarea,
+.practice-workspace .line-rail { font-size: 12px; }
+.practice-workspace .panel-heading > div span { font-size: 9px; }
+.practice-workspace .engine-tag,
+.practice-workspace .read-only-note,
+.practice-workspace .execution-meta,
+.practice-workspace .editor-footer { font-size: 9.5px; }
+.practice-workspace .run-button { font-size: 12px; }
+
 @media (max-width: 1040px) {
   .practice-layout { grid-template-columns: 1fr; }
   .schema-panel { order: 2; }
