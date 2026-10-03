@@ -23,16 +23,23 @@ class AdminApiIntegrationTest {
 
     @Test
     void returnsRealOverviewAndSafeReadOnlyWorkspaceData() throws Exception {
+        var json = tools.jackson.databind.json.JsonMapper.builder().build();
+        HttpResponse<String> initial = get("/api/admin/overview");
+        assertThat(initial.statusCode()).isEqualTo(200);
+        var baseline = json.readTree(initial.body());
         HttpResponse<String> created = post("/api/databases", "{\"name\":\"Admin Visibility Test\"}");
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
         String databaseId = idFrom(created.body());
-        post("/api/problems/1/submit", "{\"query\":\"SELECT 1 AS wrong_answer\"}");
+        assertThat(post("/api/problems/1/submit", "{\"query\":\"SELECT 1 AS wrong_answer\"}").statusCode()).isEqualTo(200);
 
         HttpResponse<String> overview = get("/api/admin/overview");
         assertThat(overview.statusCode()).isEqualTo(200);
-        assertThat(overview.body()).contains(
-                "\"totalDatabaseWorkspaces\":1", "\"activeDatabaseWorkspaces\":1",
-                "\"totalPracticeProblems\":15", "\"totalPracticeAttempts\":1",
-                "\"serviceStatus\":\"OPERATIONAL\"");
+        var totals = json.readTree(overview.body());
+        assertThat(totals.get("totalDatabaseWorkspaces").asLong()).isEqualTo(baseline.get("totalDatabaseWorkspaces").asLong() + 1);
+        assertThat(totals.get("activeDatabaseWorkspaces").asLong()).isEqualTo(baseline.get("activeDatabaseWorkspaces").asLong() + 1);
+        assertThat(totals.get("totalPracticeAttempts").asLong()).isEqualTo(baseline.get("totalPracticeAttempts").asLong() + 1);
+        assertThat(totals.get("totalPracticeProblems").asLong()).isEqualTo(baseline.get("totalPracticeProblems").asLong());
+        assertThat(totals.get("serviceStatus").asString()).isEqualTo("OPERATIONAL");
 
         HttpResponse<String> databases = get("/api/admin/databases");
         assertThat(databases.statusCode()).isEqualTo(200);
@@ -75,6 +82,20 @@ class AdminApiIntegrationTest {
         cookie = com.cloudsql.lab.TestAccounts.login(port, email);
         learnerCookie = com.cloudsql.lab.TestAccounts.signup(port);
     }
+    @org.junit.jupiter.api.AfterEach
+    void removeTestAccounts() {
+        for (String token : java.util.List.of(cookie, learnerCookie)) {
+            String accountId = auth.resolve(token.substring(token.indexOf('=') + 1)).id();
+            for (var workspace : catalog.findByOwner(accountId)) {
+                engine.delete(workspace);
+                catalog.delete(workspace.id());
+            }
+            jdbc.update("DELETE FROM platform.user_problem_progress WHERE user_id = ?", accountId);
+            jdbc.update("DELETE FROM platform.users WHERE id = ?", accountId);
+        }
+    }
+    @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.database.WorkspaceCatalogRepository catalog;
+    @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.database.WorkspaceEngine engine;
     private HttpRequest.Builder requestBuilder(URI uri) {
         return HttpRequest.newBuilder(uri).header("Cookie", uri.getPath().startsWith("/api/admin") ? cookie : learnerCookie).header("X-CloudSQL-Request", "1");
     }
