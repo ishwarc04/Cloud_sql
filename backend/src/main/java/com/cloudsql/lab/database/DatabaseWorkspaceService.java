@@ -21,14 +21,17 @@ public class DatabaseWorkspaceService {
     private final WorkspaceSqlValidator validator;
     private final WorkspaceProperties properties;
     private final CurrentUserProvider currentUserProvider;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final com.cloudsql.lab.cloud.AuditService audit;
 
     public DatabaseWorkspaceService(WorkspaceCatalogRepository repository, WorkspaceEngine engine,
-            WorkspaceSqlValidator validator, WorkspaceProperties properties, CurrentUserProvider currentUserProvider) {
+            WorkspaceSqlValidator validator, WorkspaceProperties properties, CurrentUserProvider currentUserProvider, org.springframework.jdbc.core.JdbcTemplate jdbc, com.cloudsql.lab.cloud.AuditService audit) {
         this.repository = repository;
         this.engine = engine;
         this.validator = validator;
         this.properties = properties;
         this.currentUserProvider = currentUserProvider;
+        this.jdbc = jdbc; this.audit = audit;
     }
 
     public DatabaseListResponse findAll() {
@@ -44,8 +47,10 @@ public class DatabaseWorkspaceService {
         return DatabaseResponse.from(workspace);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public DatabaseResponse create(String rawName) {
         String owner = currentUserProvider.currentUserId();
+        lockOwner(owner);
         if (repository.findByOwner(owner).size() >= properties.maxDatabasesPerUser()) {
             throw new WorkspaceQuotaException("Database quota reached. Delete a database before creating another.");
         }
@@ -61,25 +66,43 @@ public class DatabaseWorkspaceService {
             engine.delete(workspace);
             throw exception;
         }
+        afterCommit(owner, "WORKSPACE_CREATED", workspace.id());
         return DatabaseResponse.from(workspace);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public WorkspaceExecutionResponse execute(String id, String rawSql) {
+        lockOwner(currentUserProvider.currentUserId());
         DatabaseWorkspace workspace = getOwned(id);
-        ValidatedSql sql = validator.validate(rawSql);
-        WorkspaceExecutionResponse response = engine.execute(workspace, sql.sql(), sql.operation());
-        repository.updateStorageUsed(workspace.id(), engine.storageUsedBytes(workspace));
-        return response;
+        try {
+            ValidatedSql sql = validator.validate(rawSql);
+            WorkspaceExecutionResponse response = engine.execute(workspace, sql.sql(), sql.operation());
+            repository.updateStorageUsed(workspace.id(), engine.storageUsedBytes(workspace));
+            afterCommit(workspace.ownerUserId(), "SQL_" + sql.operation(), id);
+            return response;
+        } catch (RuntimeException exception) { throw exception; }
     }
 
     public WorkspaceSchemaResponse inspectSchema(String id) {
         return new WorkspaceSchemaResponse(engine.inspectSchema(getOwned(id)));
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void delete(String id) {
+        lockOwner(currentUserProvider.currentUserId());
         DatabaseWorkspace workspace = getOwned(id);
         engine.delete(workspace);
         repository.delete(workspace.id());
+        afterCommit(workspace.ownerUserId(), "WORKSPACE_DELETED", id);
+    }
+
+    public void lockOwner(String owner) {
+        jdbc.queryForObject("SELECT id FROM platform.users WHERE id = ? FOR UPDATE", String.class, owner);
+    }
+    private void afterCommit(String owner, String action, String target) {
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+            @Override public void beforeCommit(boolean readOnly) { audit.recordInTransaction(owner, action, target, "SUCCESS"); }
+        });
     }
 
     private DatabaseWorkspace getOwned(String id) {

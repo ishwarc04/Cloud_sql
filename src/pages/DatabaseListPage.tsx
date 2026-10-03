@@ -4,6 +4,7 @@ import { Icon } from '../components/ui/Icon'
 import { databaseService } from '../features/databases/databaseService'
 import { formatBytes, formatCreatedAt, storagePercent } from '../features/databases/format'
 import type { DatabaseListResponse } from '../features/databases/types'
+import { WorkspaceBackupsPanel } from '../features/databases/WorkspaceBackupsPanel'
 
 export function DatabaseListPage() {
   const [data, setData] = useState<DatabaseListResponse | null>(null)
@@ -65,6 +66,7 @@ export function DatabaseListPage() {
     </div>}
     {quotaReached && <p className="quota-note">Database quota reached. Delete a workspace before creating another.</p>}
     <CreateDatabaseDialog ref={dialog} quota={data?.quota} onCreated={() => { dialog.current?.close(); void load() }} />
+    <WorkspaceBackupsPanel />
   </section>
 }
 

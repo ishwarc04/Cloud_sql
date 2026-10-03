@@ -24,12 +24,14 @@ public class AuthService {
     private final SecureRandom random = new SecureRandom();
     private final String dummyHash;
     private final long sessionHours;
+    private final com.cloudsql.lab.cloud.AuditService audit;
 
     public AuthService(JdbcTemplate jdbc, PasswordHasher passwords,
-            @Value("${cloudsql.auth.session-hours:24}") long sessionHours) {
+            @Value("${cloudsql.auth.session-hours:24}") long sessionHours, com.cloudsql.lab.cloud.AuditService audit) {
         this.jdbc = jdbc;
         this.passwords = passwords;
         this.sessionHours = sessionHours;
+        this.audit = audit;
         if (sessionHours < 1 || sessionHours > 720) throw new IllegalArgumentException("Session hours must be 1–720");
         dummyHash = passwords.hash(UUID.randomUUID().toString());
     }
@@ -42,6 +44,9 @@ public class AuthService {
         } catch (DuplicateKeyException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Unable to create account with this email.");
         }
+        var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        Account actor = attributes instanceof org.springframework.web.context.request.ServletRequestAttributes request ? (Account) request.getRequest().getAttribute("account") : null;
+        audit.record(actor == null ? user.id() : actor.id(), "ACCOUNT_CREATED", user.id(), "SUCCESS");
         return user;
     }
 
@@ -56,9 +61,11 @@ public class AuthService {
         boolean matched = passwords.matches(password, users.isEmpty() ? dummyHash : users.getFirst().hash());
         if (users.isEmpty() || !matched) {
             jdbc.update("INSERT INTO platform.login_failures (id, email, attempted_at) VALUES (?, ?, ?)", UUID.randomUUID().toString(), normalized, Timestamp.from(Instant.now()));
+            audit.record(null, "SIGN_IN", "AUTH", "FAILED");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
         }
         jdbc.update("DELETE FROM platform.login_failures WHERE email = ?", normalized);
+        audit.record(users.getFirst().account().id(), "SIGN_IN", "AUTH", "SUCCESS");
         return users.getFirst().account();
     }
 
@@ -80,7 +87,9 @@ public class AuthService {
     }
 
     public void revoke(String token) {
+        Account account = resolve(token);
         if (token != null) jdbc.update("DELETE FROM platform.sessions WHERE token_hash = ?", digest(token));
+        if (account != null) audit.record(account.id(), "SESSION_REVOKED", "AUTH", "SUCCESS");
     }
 
     public long sessionSeconds() { return sessionHours * 3600; }

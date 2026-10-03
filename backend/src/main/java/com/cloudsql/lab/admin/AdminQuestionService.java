@@ -22,8 +22,9 @@ public class AdminQuestionService {
     public record PublishedQuestion(long id, String title, String difficulty, String category) { }
     private final JdbcTemplate jdbc;
     private final QuerySafetyValidator validator;
+    private final com.cloudsql.lab.cloud.AuditService audit;
     private final tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
-    public AdminQuestionService(JdbcTemplate jdbc, QuerySafetyValidator validator) { this.jdbc = jdbc; this.validator = validator; }
+    public AdminQuestionService(JdbcTemplate jdbc, QuerySafetyValidator validator, com.cloudsql.lab.cloud.AuditService audit) { this.jdbc = jdbc; this.validator = validator; this.audit = audit; }
 
     @Transactional
     public PublishedQuestion create(CreateQuestion input, String adminId) {
@@ -32,7 +33,7 @@ public class AdminQuestionService {
         StructuredProblemDataset.validate(input.tables());
         String starter = validator.validate(input.starterQuery()), solution = validator.validate(input.solutionQuery());
         try {
-            return jdbc.execute((ConnectionCallback<PublishedQuestion>) connection -> {
+            PublishedQuestion published = jdbc.execute((ConnectionCallback<PublishedQuestion>) connection -> {
                 long id;
                 try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery("SELECT NEXTVAL('platform.custom_problem_ids')")) { result.next(); id = result.getLong(1); }
                 String schema = "practice_problem_" + id;
@@ -53,6 +54,10 @@ public class AdminQuestionService {
                     return new PublishedQuestion(id, definition.title(), definition.difficulty(), definition.topic());
                 } finally { if (!postgres) connection.setSchema(previousSchema); }
             });
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override public void beforeCommit(boolean readOnly) { audit.recordInTransaction(adminId, "QUESTION_PUBLISHED", Long.toString(published.id()), "SUCCESS"); }
+            });
+            return published;
         } catch (DataAccessException exception) { throw new QueryValidationException("Question could not be published. Check table names, sample values, and SQL queries."); }
     }
     private void checkQuery(Connection connection, String query) throws SQLException {

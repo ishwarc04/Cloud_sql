@@ -14,12 +14,17 @@ public class AdminController {
     private final AdminAnalyticsService analytics;
     private final AdminQuestionService questions;
     private final com.cloudsql.lab.auth.AuthService auth;
+    private final com.cloudsql.lab.cloud.CloudOperationsService cloud;
 
-    public AdminController(AdminService service, AdminAnalyticsService analytics, AdminQuestionService questions, com.cloudsql.lab.auth.AuthService auth) {
+    public AdminController(AdminService service, AdminAnalyticsService analytics, AdminQuestionService questions, com.cloudsql.lab.auth.AuthService auth, com.cloudsql.lab.cloud.CloudOperationsService cloud) {
         this.service = service;
         this.analytics = analytics;
         this.questions = questions; this.auth = auth;
+        this.cloud = cloud;
     }
+    @GetMapping("/cloud") public com.cloudsql.lab.cloud.CloudOperationsService.Report cloud() { return cloud.report(); }
+    @org.springframework.web.bind.annotation.PostMapping("/cloud/probe")
+    public com.cloudsql.lab.cloud.CloudOperationsService.Report probe() { cloud.probe(); return cloud.report(); }
 
     @org.springframework.web.bind.annotation.PostMapping("/users")
     @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.CREATED)

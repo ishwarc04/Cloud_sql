@@ -55,7 +55,7 @@ public class H2WorkspaceEngine implements WorkspaceEngine {
 
     @Override
     public WorkspaceExecutionResponse execute(DatabaseWorkspace workspace, String sql, String statementType) {
-        if (!statementType.equals("SELECT") && storageUsedBytes(workspace) >= workspace.storageLimitBytes()) {
+        if (!java.util.Set.of("SELECT", "DELETE", "DROP").contains(statementType) && storageUsedBytes(workspace) >= workspace.storageLimitBytes()) {
             throw new WorkspaceQuotaException("This database has reached its configured storage limit.");
         }
 
@@ -64,8 +64,11 @@ public class H2WorkspaceEngine implements WorkspaceEngine {
                 Statement statement = connection.createStatement()) {
             statement.setQueryTimeout(properties.queryTimeoutSeconds());
             statement.setMaxRows(properties.maxReturnedRows());
+            connection.setAutoCommit(false);
             boolean hasRows = statement.execute(sql);
             if (!hasRows) {
+                if (!java.util.Set.of("DELETE", "DROP").contains(statementType) && logicalBytes(connection) > workspace.storageLimitBytes()) { connection.rollback(); throw new WorkspaceQuotaException("Write rejected: it would exceed this workspace's storage quota."); }
+                connection.commit();
                 return new WorkspaceExecutionResponse(List.of(), List.of(), Math.max(0, statement.getUpdateCount()),
                         statementType, elapsedMilliseconds(startedAt), null);
             }
@@ -105,13 +108,28 @@ public class H2WorkspaceEngine implements WorkspaceEngine {
 
     @Override
     public long storageUsedBytes(DatabaseWorkspace workspace) {
-        long total = 0;
-        try (DirectoryStream<Path> files = Files.newDirectoryStream(storageDirectory, workspace.internalWorkspaceId() + "*")) {
-            for (Path file : files) if (Files.isRegularFile(file)) total += Files.size(file);
-            return total;
-        } catch (IOException exception) {
-            throw new WorkspaceException("Database storage usage could not be measured.", exception);
+        try (Connection connection = DriverManager.getConnection(connectionUrl(workspace), "sa", "")) { return logicalBytes(connection); }
+        catch (SQLException exception) { throw sqlException(exception); }
+    }
+    private long logicalBytes(Connection connection) throws SQLException {
+        long bytes = 0;
+        try (ResultSet tables = connection.getMetaData().getTables(null, "PUBLIC", "%", new String[]{"TABLE"})) {
+            while (tables.next()) try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT * FROM " + WorkspaceSnapshots.quote(tables.getString("TABLE_NAME")))) {
+                while (rows.next()) { bytes += 24; for (int i = 1; i <= rows.getMetaData().getColumnCount(); i++) if (rows.getObject(i) != null) bytes += rows.getString(i).getBytes(java.nio.charset.StandardCharsets.UTF_8).length; }
+            }
         }
+        return bytes;
+    }
+    @Override public WorkspaceSnapshot backup(DatabaseWorkspace workspace) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl(workspace), "sa", "")) { return WorkspaceSnapshots.export(connection, "PUBLIC", workspace.name(), properties.queryTimeoutSeconds()); }
+        catch (SQLException exception) { throw sqlException(exception); }
+    }
+    @Override public void restore(DatabaseWorkspace workspace, WorkspaceSnapshot snapshot) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl(workspace), "sa", "")) {
+            connection.setAutoCommit(false); WorkspaceSnapshots.restore(connection, snapshot, properties.queryTimeoutSeconds());
+            if (logicalBytes(connection) > workspace.storageLimitBytes()) { connection.rollback(); throw new WorkspaceQuotaException("Restore would exceed workspace storage quota."); }
+            connection.commit();
+        } catch (SQLException exception) { throw sqlException(exception); }
     }
 
     @Override
@@ -154,7 +172,7 @@ public class H2WorkspaceEngine implements WorkspaceEngine {
         List<List<Object>> rows = new ArrayList<>();
         while (resultSet.next()) {
             List<Object> row = new ArrayList<>();
-            for (int index = 1; index <= metadata.getColumnCount(); index++) row.add(resultSet.getObject(index));
+            for (int index = 1; index <= metadata.getColumnCount(); index++) row.add(com.cloudsql.lab.common.SqlCellValues.jsonValue(resultSet.getObject(index)));
             rows.add(row);
         }
         return new WorkspaceExecutionResponse(columns, rows, 0, statementType, elapsedMilliseconds(startedAt), null);

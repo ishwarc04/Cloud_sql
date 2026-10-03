@@ -78,9 +78,28 @@ Admins land directly in `/admin`. Learner dashboard, practice, and personal-data
 
 ```powershell
 cd backend
-mvn test
-mvn package -DskipTests
+mvn verify
 cd ..
 npm run lint
+npm run test:proxy
 npm run build
 ```
+
+## Cloud operations and recovery
+
+Open **Admin Dashboard → Cloud** for persisted hourly API request/error counts, processing latency, sampled database connectivity, account consumption, and searchable audit events. Metrics and probes retain seven days; audit events retain 30 days. Probe percentages describe observed database samples, not a service uptime SLA. A sleeping Render service produces sampling gaps. Failed probes queue in memory until PostgreSQL reconnects; restarting the process loses that pending queue. Audit records omit passwords, tokens, request bodies, and SQL text.
+
+Learners can **Save snapshot**, **Download**, and **Restore** from My Databases or an individual workspace. Each account can retain three snapshots, each limited to 2 MB, 5,000 rows, 20 tables, and 30 columns per table. Restore creates a separate workspace and respects the existing two-workspace quota. Snapshots preserve supported scalar values, column types/nullability, and primary keys. Other constraints and indexes are excluded; generated/default columns and foreign keys are rejected. Saved snapshots reside in the same Neon database; download JSON for an independent copy. These logical snapshots do not replace provider disaster recovery backups.
+
+Account-row locks serialize workspace changes and quota checks across backend instances. PostgreSQL mutations and catalogue updates share a transaction; writes exceeding measured table/index storage limits roll back. Physical PostgreSQL allocation or bloat may remain after rollback, so this is an application storage policy, not a filesystem reservation. Personal schemas provide logical tenant isolation, not virtual machines.
+
+GitHub Actions runs frontend lint, proxy tests, build, and backend verification for pull requests and pushes to main. Render's Docker build runs `mvn verify`; Vercel's build runs lint, proxy tests, and build. No new infrastructure or credentials are required. Actions provide check results; repository branch protection must be configured separately if required.
+
+### Four-member cloud computing demonstration
+
+1. **Frontend and SaaS:** demonstrate learner/admin separation, original practice questions, and Vercel hosting.
+2. **Backend and IAM:** demonstrate persisted authentication, API authorization, audit events, and Render container deployment.
+3. **Managed SQL and recovery:** demonstrate Neon PostgreSQL, isolated workspace schemas, snapshot download/restore, and ownership checks.
+4. **Cloud operations and DevOps:** demonstrate request/latency graphs, database probes, quotas/account consumption, and CI checks.
+
+For a quick demo, create a learner and workspace, create a small table and insert rows, save a snapshot, restore it under a new name, and select its rows. Sign in as admin, open Cloud, check the database, and inspect the resulting request chart and audit events. This demonstrates SaaS/PaaS, managed SQL, IAM, resource accounting, recovery, and DevOps. Kubernetes, VM virtualization, VPC/VPN, and provider billing are not implemented by these features.

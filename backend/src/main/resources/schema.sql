@@ -65,3 +65,42 @@ CREATE TABLE IF NOT EXISTS platform.custom_problems (
   created_by VARCHAR(36) NOT NULL REFERENCES platform.users(id),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS platform.audit_events (
+  id VARCHAR(36) PRIMARY KEY,
+  actor_id VARCHAR(36),
+  action VARCHAR(40) NOT NULL,
+  target VARCHAR(100) NOT NULL,
+  outcome VARCHAR(20) NOT NULL,
+  occurred_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON platform.audit_events(occurred_at);
+CREATE TABLE IF NOT EXISTS platform.request_metrics (
+  bucket_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  route_group VARCHAR(20) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  requests BIGINT NOT NULL,
+  errors BIGINT NOT NULL,
+  duration_ms BIGINT NOT NULL,
+  max_duration_ms BIGINT NOT NULL,
+  PRIMARY KEY (bucket_start, route_group, user_id)
+);
+CREATE TABLE IF NOT EXISTS platform.health_samples (
+  id VARCHAR(36) PRIMARY KEY,
+  checked_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  status VARCHAR(10) NOT NULL,
+  latency_ms BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_health_time ON platform.health_samples(checked_at);
+CREATE TABLE IF NOT EXISTS platform.workspace_backups (
+  id VARCHAR(36) PRIMARY KEY,
+  owner_user_id VARCHAR(36) NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+  source_workspace_id VARCHAR(36) NOT NULL,
+  name VARCHAR(60) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  table_count INTEGER NOT NULL,
+  row_count INTEGER NOT NULL,
+  payload TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_backups_owner ON platform.workspace_backups(owner_user_id, created_at);

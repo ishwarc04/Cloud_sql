@@ -93,7 +93,7 @@ public class ProblemService {
                 while (resultSet.next()) {
                     List<Object> row = new ArrayList<>();
                     for (int index = 1; index <= metadata.getColumnCount(); index++) {
-                        row.add(resultSet.getObject(index));
+                        row.add(com.cloudsql.lab.common.SqlCellValues.jsonValue(resultSet.getObject(index)));
                     }
                     rows.add(row);
                 }

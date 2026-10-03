@@ -11,4 +11,6 @@ public interface WorkspaceEngine {
     List<WorkspaceTable> inspectSchema(DatabaseWorkspace workspace);
     long storageUsedBytes(DatabaseWorkspace workspace);
     void delete(DatabaseWorkspace workspace);
+    WorkspaceSnapshot backup(DatabaseWorkspace workspace);
+    void restore(DatabaseWorkspace workspace, WorkspaceSnapshot snapshot);
 }

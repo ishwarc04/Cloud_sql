@@ -4,6 +4,7 @@ import { Icon } from '../components/ui/Icon'
 import { databaseService } from '../features/databases/databaseService'
 import { formatBytes, storagePercent } from '../features/databases/format'
 import type { DatabaseWorkspace, WorkspaceQueryResult, WorkspaceSchema } from '../features/databases/types'
+import { WorkspaceBackupsPanel } from '../features/databases/WorkspaceBackupsPanel'
 
 function displayCell(value: unknown) {
   if (value === null) return <span className="null-value">NULL</span>
@@ -12,6 +13,9 @@ function displayCell(value: unknown) {
 
 export function DatabaseWorkspacePage() {
   const databaseId = useParams().databaseId ?? ''
+  return <DatabaseWorkspaceContent key={databaseId} databaseId={databaseId} />
+}
+function DatabaseWorkspaceContent({ databaseId }: { databaseId: string }) {
   const [database, setDatabase] = useState<DatabaseWorkspace | null>(null)
   const [schema, setSchema] = useState<WorkspaceSchema | null>(null)
   const [query, setQuery] = useState('')
@@ -60,7 +64,7 @@ export function DatabaseWorkspacePage() {
 
   return <section className="page database-workspace-page">
     <div className="problem-context-bar"><Link to="/databases"><Icon name="chevron" />All databases</Link><span>Personal workspace</span></div>
-    <header className="database-workspace-header"><div className="database-title"><span className="section-icon"><Icon name="database" /></span><div><h1>{database.name}</h1><span className="database-status"><i />{database.status.toLowerCase()} · H2 local</span></div></div><div className="workspace-quota"><div><span>Storage</span><strong>{formatBytes(database.storageUsedBytes)} / {formatBytes(database.storageLimitBytes)}</strong></div><div className="quota-track"><span style={{ width: `${storagePercent(database.storageUsedBytes, database.storageLimitBytes)}%` }} /></div></div></header>
+    <header className="database-workspace-header"><div className="database-title"><span className="section-icon"><Icon name="database" /></span><div><h1>{database.name}</h1><span className="database-status"><i />{database.status.toLowerCase()} · isolated SQL workspace</span></div></div><div className="workspace-quota"><div><span>Storage</span><strong>{formatBytes(database.storageUsedBytes)} / {formatBytes(database.storageLimitBytes)}</strong></div><div className="quota-track"><span style={{ width: `${storagePercent(database.storageUsedBytes, database.storageLimitBytes)}%` }} /></div></div></header>
 
     <div className="database-console">
       <aside className="schema-explorer">
@@ -75,7 +79,7 @@ export function DatabaseWorkspacePage() {
         <form className="editor-panel" onSubmit={execute}>
           <div className="panel-heading editor-heading"><div><span>Query editor</span><strong>workspace.sql</strong></div><span className="read-only-note">Single statement</span></div>
           <div className="editor-shell database-editor"><div className="line-rail" aria-hidden="true">1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10</div><textarea aria-label="Workspace SQL query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={'CREATE TABLE customers (\n  id INT PRIMARY KEY,\n  name VARCHAR(100) NOT NULL\n);'} spellCheck={false} /></div>
-          <div className="editor-footer"><span>H2 SQL · table operations · maximum 200 result rows</span><button className="run-button" type="submit" disabled={running || !query.trim()}>{running ? <><span className="spinner" />Running</> : <><Icon name="play" />Run query</>}</button></div>
+          <div className="editor-footer"><span>SQL · table operations · maximum 200 result rows</span><button className="run-button" type="submit" disabled={running || !query.trim()}>{running ? <><span className="spinner" />Running</> : <><Icon name="play" />Run query</>}</button></div>
         </form>
 
         <section className="results-panel" aria-live="polite">
@@ -88,5 +92,6 @@ export function DatabaseWorkspacePage() {
         </section>
       </div>
     </div>
+    <WorkspaceBackupsPanel key={database.id} database={{ id: database.id, name: database.name }} />
   </section>
 }

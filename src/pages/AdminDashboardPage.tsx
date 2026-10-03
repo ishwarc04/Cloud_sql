@@ -5,8 +5,9 @@ import type { AdminAnalytics, AdminSubmission, AdminUserDetail, AdminWorkspace }
 import { ActivityChart, CategoryChart, OutcomeChart } from '../features/admin/AdminCharts'
 import { formatBytes, storagePercent } from '../features/databases/format'
 import { AdminCreatePanel } from '../features/admin/AdminCreatePanel'
+import { CloudOperationsPanel } from '../features/admin/CloudOperationsPanel'
 
-type Tab = 'Overview' | 'People' | 'Workspaces' | 'Problems' | 'Activity'
+type Tab = 'Overview' | 'People' | 'Workspaces' | 'Problems' | 'Activity' | 'Cloud'
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : 'No submissions yet'
 const count = (value: number) => value.toLocaleString()
 function Outcome({ value }: { value: string }) {
@@ -69,7 +70,8 @@ export function AdminDashboardPage() {
     <div className="ops-snapshot"><span>Updated {date(data.generatedAt)}</span><span>Persisted platform snapshot · {s.databaseLatencyMs} ms database probe</span></div>
     {error && <div className="database-alert" role="alert">Refresh failed: {error}. Showing the last successful snapshot.<button onClick={refresh}>Retry</button></div>}
     <div className="ops-metrics">{cards.map(card => <article className="ops-card" key={card.label}><span className="ops-metric-label"><Icon name={card.icon} />{card.label}</span><strong>{card.value}</strong><small>{card.detail}</small></article>)}</div>
-    <nav className="ops-tabs" aria-label="Admin views">{(['Overview', 'People', 'Workspaces', 'Problems', 'Activity'] as Tab[]).map(value => <button key={value} aria-current={tab === value ? 'page' : undefined} onClick={() => { setTab(value); setSearch(''); setFilter('All') }}>{value}{value === 'People' && <span>{s.totalUsers}</span>}{value === 'Workspaces' && <span>{s.totalWorkspaces}</span>}</button>)}</nav>
+    <nav className="ops-tabs" aria-label="Admin views">{(['Overview', 'People', 'Workspaces', 'Problems', 'Activity', 'Cloud'] as Tab[]).map(value => <button key={value} aria-current={tab === value ? 'page' : undefined} onClick={() => { setTab(value); setSearch(''); setFilter('All') }}>{value}{value === 'People' && <span>{s.totalUsers}</span>}{value === 'Workspaces' && <span>{s.totalWorkspaces}</span>}</button>)}</nav>
+    {tab === 'Cloud' && <CloudOperationsPanel revision={revision} />}
     {tab === 'Overview' && <>
       <div className="ops-chart-grid"><ActivityChart days={data.dailyActivity} /><OutcomeChart summary={s} /></div>
       <div className="ops-secondary-grid"><CategoryChart problems={data.problems} /><section className="ops-card"><div className="ops-card-heading"><div><span className="eyebrow">Cloud workspace allocation</span><h2>Resources and quotas</h2></div><Icon name="server" /></div><div className="ops-resource-number"><strong>{formatBytes(s.storageUsedBytes)}</strong><span>of {formatBytes(s.storageAllocatedBytes)} allocated</span></div><progress className="ops-capacity-progress" value={Math.min(s.storageUsedBytes, s.storageAllocatedBytes)} max={Math.max(1, s.storageAllocatedBytes)} aria-label="Total recorded workspace storage" /><div className="ops-resource-caption"><span>{s.totalWorkspaces} workspaces</span><span>{storagePercent(s.storageUsedBytes, s.storageAllocatedBytes).toFixed(1)}% used</span></div><dl className="ops-quota-list"><div><dt>Databases per account</dt><dd>{data.quotas.maxDatabasesPerUser}</dd></div><div><dt>Storage per database</dt><dd>{formatBytes(data.quotas.storageLimitPerDatabaseBytes)}</dd></div><div><dt>Query timeout</dt><dd>{data.quotas.queryTimeoutSeconds} seconds</dd></div><div><dt>Result row limit</dt><dd>{data.quotas.maxReturnedRows}</dd></div><div><dt>Unexpired sessions</dt><dd>{s.activeSessions}</dd></div></dl><p className="ops-caption">Storage reflects the last workspace measurement. Session counts include multiple devices.</p></section></div>

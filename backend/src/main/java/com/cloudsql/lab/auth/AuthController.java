@@ -33,6 +33,7 @@ public class AuthController {
     @PostMapping("/signup") @ResponseStatus(HttpStatus.CREATED)
     public Account signup(@Valid @RequestBody Signup input, HttpServletRequest request, HttpServletResponse response) {
         Account account = service.signup(input.name(), input.email(), input.password());
+        request.setAttribute("account", account);
         service.revoke(SessionFilter.token(request));
         cookie(response, service.createSession(account), service.sessionSeconds());
         return account;
@@ -40,6 +41,7 @@ public class AuthController {
     @PostMapping("/login")
     public Account login(@Valid @RequestBody Login input, HttpServletRequest request, HttpServletResponse response) {
         Account account = service.login(input.email(), input.password());
+        request.setAttribute("account", account);
         service.revoke(SessionFilter.token(request));
         cookie(response, service.createSession(account), service.sessionSeconds());
         return account;
