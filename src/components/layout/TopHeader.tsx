@@ -3,6 +3,8 @@ import { Icon } from '../ui/Icon'
 
 const routes: Record<string, { group: string; title: string }> = {
   '/dashboard': { group: 'Workspace', title: 'Dashboard' },
+  '/leaderboard': { group: 'Learn', title: 'Leaderboard' },
+  '/billing': { group: 'Account', title: 'Plans & Billing' },
   '/practice': { group: 'Develop', title: 'SQL Practice' },
   '/databases': { group: 'Develop', title: 'My Databases' },
   '/admin': { group: 'Operate', title: 'Admin Dashboard' },

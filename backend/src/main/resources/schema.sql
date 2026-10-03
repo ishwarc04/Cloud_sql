@@ -104,3 +104,17 @@ CREATE TABLE IF NOT EXISTS platform.workspace_backups (
   payload TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_backups_owner ON platform.workspace_backups(owner_user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS platform.account_plans (
+  user_id VARCHAR(36) PRIMARY KEY REFERENCES platform.users(id) ON DELETE CASCADE,
+  plan VARCHAR(10) NOT NULL CHECK (plan = 'PRO'),
+  upgraded_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+CREATE TABLE IF NOT EXISTS platform.demo_payments (
+  user_id VARCHAR(36) NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+  request_id VARCHAR(36) NOT NULL,
+  amount_paise INTEGER NOT NULL,
+  status VARCHAR(10) NOT NULL CHECK (status IN ('SUCCESS', 'DECLINED')),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  PRIMARY KEY (user_id, request_id)
+);

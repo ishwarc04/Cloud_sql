@@ -7,6 +7,8 @@ const navigation: Array<{ label: string; to: string; icon: IconName }> = [
   { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
   { label: 'SQL Practice', to: '/practice', icon: 'practice' },
   { label: 'My Databases', to: '/databases', icon: 'database' },
+  { label: 'Leaderboard', to: '/leaderboard', icon: 'users' },
+  { label: 'Plans & Billing', to: '/billing', icon: 'server' },
 ]
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

@@ -11,6 +11,8 @@ import { DatabaseListPage } from '../pages/DatabaseListPage'
 import { DatabaseWorkspacePage } from '../pages/DatabaseWorkspacePage'
 import { AdminDashboardPage } from '../pages/AdminDashboardPage'
 import { RoleHome } from './auth/RoleHome'
+import { LeaderboardPage } from '../pages/LeaderboardPage'
+import { BillingPage } from '../pages/BillingPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <AuthPage key="login" mode="login" /> },
@@ -19,6 +21,8 @@ export const router = createBrowserRouter([
     path: '/', element: <RequireAuth><AppShell /></RequireAuth>, children: [
       { index: true, element: <RoleHome /> },
       { path: 'dashboard', element: <RequireRole role="user"><UserDashboardPage /></RequireRole> },
+      { path: 'leaderboard', element: <RequireRole role="user"><LeaderboardPage /></RequireRole> },
+      { path: 'billing', element: <RequireRole role="user"><BillingPage /></RequireRole> },
       { path: 'practice', element: <RequireRole role="user"><ProblemListPage /></RequireRole> },
       { path: 'practice/:problemId', element: <RequireRole role="user"><ProblemDetailPage /></RequireRole> },
       { path: 'databases', element: <RequireRole role="user"><DatabaseListPage /></RequireRole> },

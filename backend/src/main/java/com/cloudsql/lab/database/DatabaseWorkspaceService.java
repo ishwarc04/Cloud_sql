@@ -23,23 +23,26 @@ public class DatabaseWorkspaceService {
     private final CurrentUserProvider currentUserProvider;
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final com.cloudsql.lab.cloud.AuditService audit;
+    private final com.cloudsql.lab.cloud.AccountPlanService plans;
 
     public DatabaseWorkspaceService(WorkspaceCatalogRepository repository, WorkspaceEngine engine,
-            WorkspaceSqlValidator validator, WorkspaceProperties properties, CurrentUserProvider currentUserProvider, org.springframework.jdbc.core.JdbcTemplate jdbc, com.cloudsql.lab.cloud.AuditService audit) {
+            WorkspaceSqlValidator validator, WorkspaceProperties properties, CurrentUserProvider currentUserProvider, org.springframework.jdbc.core.JdbcTemplate jdbc, com.cloudsql.lab.cloud.AuditService audit, com.cloudsql.lab.cloud.AccountPlanService plans) {
         this.repository = repository;
         this.engine = engine;
         this.validator = validator;
         this.properties = properties;
         this.currentUserProvider = currentUserProvider;
         this.jdbc = jdbc; this.audit = audit;
+        this.plans = plans;
     }
 
     public DatabaseListResponse findAll() {
         List<DatabaseWorkspace> workspaces = refreshStorage(repository.findByOwner(currentUserProvider.currentUserId()));
         long used = workspaces.stream().mapToLong(DatabaseWorkspace::storageUsedBytes).sum();
+        var plan = plans.forUser(currentUserProvider.currentUserId());
         return new DatabaseListResponse(workspaces.stream().map(DatabaseResponse::from).toList(),
-                new DatabaseQuotaResponse(workspaces.size(), properties.maxDatabasesPerUser(), used,
-                        properties.storageLimitBytes() * properties.maxDatabasesPerUser()));
+                new DatabaseQuotaResponse(workspaces.size(), plan.maximumDatabases(), used,
+                        plan.storagePerDatabaseBytes() * plan.maximumDatabases()));
     }
 
     public DatabaseResponse findById(String id) {
@@ -51,13 +54,14 @@ public class DatabaseWorkspaceService {
     public DatabaseResponse create(String rawName) {
         String owner = currentUserProvider.currentUserId();
         lockOwner(owner);
-        if (repository.findByOwner(owner).size() >= properties.maxDatabasesPerUser()) {
+        var plan = plans.forUser(owner);
+        if (repository.findByOwner(owner).size() >= plan.maximumDatabases()) {
             throw new WorkspaceQuotaException("Database quota reached. Delete a database before creating another.");
         }
         String publicId = UUID.randomUUID().toString();
         String internalId = UUID.randomUUID().toString().replace("-", "");
         DatabaseWorkspace workspace = new DatabaseWorkspace(publicId, internalId, rawName.trim(), owner, "ACTIVE",
-                OffsetDateTime.now(ZoneOffset.UTC), 0, properties.storageLimitBytes());
+                OffsetDateTime.now(ZoneOffset.UTC), 0, plan.storagePerDatabaseBytes());
         long initialBytes = engine.create(workspace);
         workspace = workspace.withStorageUsedBytes(initialBytes);
         try {

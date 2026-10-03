@@ -41,7 +41,7 @@ export function DatabaseListPage() {
 
   return <section className="page">
     <header className="page-header">
-      <div><span className="eyebrow">Cloud workspace</span><h1>My Databases</h1><p>Create isolated SQL environments and manage them within your local resource quota.</p></div>
+      <div><span className="eyebrow">Cloud workspace</span><h1>My Databases</h1><p>Create isolated SQL environments within your account quota. <Link to="/billing">Explore demo upgrades →</Link></p></div>
       <button className="primary-button button-with-icon" type="button" onClick={() => dialog.current?.showModal()} disabled={quotaReached}><Icon name="plus" />Create database</button>
     </header>
 

@@ -680,3 +680,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .backup-restore-form label { display: grid; gap: 8px; font-size: 14px; min-width: 220px; }
 .backup-restore-form input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 5px; background: var(--canvas); color: var(--text); }
 .backup-restore-form > span, .backup-delete-confirm > span { flex: 1; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.learner-reward-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 24px; }
+.billing-plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.reward-card { padding: 28px; }
+.reward-card h2 { margin: 14px 0; font-size: 24px; }
+.reward-card strong { font-size: 20px; }
+.reward-card p { color: var(--text-secondary, #687078); line-height: 1.6; }
+.reward-medal { display: block; font-size: 42px; margin-bottom: 18px; }
+.reward-0 { border-top: 3px solid #b47a11; }
+.reward-1 { border-top: 3px solid #89939e; }
+.reward-2 { border-top: 3px solid #ac7044; }
+.learner-rank-banner { display: flex; flex-wrap: wrap; gap: 16px 32px; padding: 20px 24px; background: #a9620710; border: 1px solid #a9620730; border-radius: 8px; margin-bottom: 24px; line-height: 1.5; }
+.leader-you { background: #a9620710; }

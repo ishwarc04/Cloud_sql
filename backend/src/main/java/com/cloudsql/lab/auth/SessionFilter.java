@@ -46,7 +46,7 @@ public class SessionFilter extends OncePerRequestFilter {
         boolean publicPath = path.equals("/api/health") || path.equals("/api/auth/login") || path.equals("/api/auth/signup") || path.equals("/api/auth/logout");
         if (!publicPath && account == null) { error(response, 401, "Please sign in to continue."); return; }
         if (path.startsWith("/api/admin") && !"ADMIN".equals(account.role())) { error(response, 403, "Administrator access required."); return; }
-        if (account != null && "ADMIN".equals(account.role()) && (path.equals("/api/dashboard") || path.startsWith("/api/problems") || path.startsWith("/api/databases") || path.startsWith("/api/backups"))) {
+        if (account != null && "ADMIN".equals(account.role()) && (path.equals("/api/dashboard") || path.startsWith("/api/problems") || path.startsWith("/api/databases") || path.startsWith("/api/backups") || path.startsWith("/api/billing") || path.equals("/api/leaderboard"))) {
             error(response, 403, "Learner access required. Use the admin workspace."); return;
         }
         chain.doFilter(request, response);

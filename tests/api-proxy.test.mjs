@@ -84,6 +84,18 @@ test('network errors return a controlled response without leaking configuration'
   assert.doesNotMatch(JSON.stringify(result.body), /secret|private-backend/)
 })
 
+test('leaderboard and demo billing routes use the fixed backend', async () => {
+  process.env.BACKEND_API_URL = 'https://backend.example'
+  const targets = []
+  globalThis.fetch = async url => { targets.push(url.pathname); return new Response('{}') }
+  for (const path of ['leaderboard', 'billing', 'billing/upgrade']) {
+    const result = response()
+    await handler({ method: 'GET', query: { path }, headers: {} }, result)
+    assert.equal(result.code, 200)
+  }
+  assert.deepEqual(targets, ['/api/leaderboard', '/api/billing', '/api/billing/upgrade'])
+})
+
 test('admin analytics and account detail routes reach the backend with the session cookie', async () => {
   process.env.BACKEND_API_URL = 'https://backend.example'
   const targets = []
