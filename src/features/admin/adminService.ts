@@ -1,8 +1,8 @@
 import type { AdminDatabase, AdminOverview } from './types'
-import { apiUrl } from '../../app/api'
+import { apiFetch } from '../../app/api'
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(apiUrl(path))
+  const response = await apiFetch(path)
   const payload = await response.json().catch(() => null) as T | { error?: string } | null
   if (!response.ok) {
     const message = payload && typeof payload === 'object' && 'error' in payload && payload.error

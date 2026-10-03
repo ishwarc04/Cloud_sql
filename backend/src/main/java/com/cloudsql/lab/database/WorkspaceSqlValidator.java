@@ -20,6 +20,8 @@ public class WorkspaceSqlValidator {
     public ValidatedSql validate(String rawSql) {
         if (rawSql == null || rawSql.isBlank()) throw new WorkspaceException("SQL is required.");
         String sql = rawSql.trim();
+        try { com.cloudsql.lab.common.LearnerSqlGuard.inspect(sql); }
+        catch (IllegalArgumentException exception) { throw new WorkspaceException(exception.getMessage()); }
         if (sql.endsWith(";")) sql = sql.substring(0, sql.length() - 1).trim();
         if (sql.contains(";")) throw new WorkspaceException("Only one SQL statement is allowed.");
         if (sql.contains("--") || sql.contains("/*") || sql.contains("*/")) {

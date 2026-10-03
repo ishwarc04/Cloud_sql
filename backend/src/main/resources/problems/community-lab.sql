@@ -1,0 +1,10 @@
+CREATE TABLE tools (id INTEGER PRIMARY KEY, name VARCHAR(80) NOT NULL, kind VARCHAR(40) NOT NULL, daily_fee INTEGER NOT NULL, in_stock INTEGER NOT NULL);
+CREATE TABLE members (id INTEGER PRIMARY KEY, name VARCHAR(80) NOT NULL, neighborhood VARCHAR(40) NOT NULL);
+CREATE TABLE rentals (id INTEGER PRIMARY KEY, member_id INTEGER REFERENCES members(id), tool_id INTEGER REFERENCES tools(id), days INTEGER NOT NULL);
+CREATE TABLE events (id INTEGER PRIMARY KEY, venue VARCHAR(80) NOT NULL, capacity INTEGER NOT NULL);
+CREATE TABLE enrollments (member_id INTEGER REFERENCES members(id), event_id INTEGER REFERENCES events(id), attended INTEGER NOT NULL, PRIMARY KEY(member_id, event_id));
+INSERT INTO tools VALUES (1, 'Pocket Loom', 'Textile', 8, 4), (2, 'Clay Wheel', 'Ceramics', 25, 0), (3, 'Frame Loom', 'Textile', 15, 2), (4, 'Glaze Kit', 'Ceramics', 8, 3), (5, 'Print Press', 'Printing', 30, 1), (6, 'Stamp Set', 'Printing', 5, 6);
+INSERT INTO members VALUES (1, 'Nila', 'Riverside'), (2, 'Dev', 'Hilltop'), (3, 'Tara', 'Riverside'), (4, 'Ash', 'Old Town'), (5, 'Meera', 'Hilltop');
+INSERT INTO rentals VALUES (1, 1, 1, 3), (2, 1, 3, 2), (3, 2, 2, 1), (4, 3, 1, 2), (5, 3, 5, 4), (6, 4, 6, 1), (7, 2, 5, 2), (8, 1, 1, 1);
+INSERT INTO events VALUES (1, 'River Studio', 3), (2, 'Hill Workshop', 2), (3, 'Town Gallery', 4), (4, 'Garden Shed', 2);
+INSERT INTO enrollments VALUES (1, 1, 1), (2, 1, 0), (3, 1, 1), (1, 2, 1), (4, 2, 1), (2, 3, 1);

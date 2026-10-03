@@ -110,7 +110,7 @@ class ProblemApiIntegrationTest {
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl() + path)).GET().build();
+        HttpRequest request = requestBuilder(URI.create(baseUrl() + path)).GET().build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
@@ -124,13 +124,21 @@ class ProblemApiIntegrationTest {
 
     private HttpResponse<String> postQuery(long problemId, String action, String query) throws IOException, InterruptedException {
         String escapedQuery = query.replace("\\", "\\\\").replace("\"", "\\\"");
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl() + "/api/problems/" + problemId + "/" + action))
+        HttpRequest request = requestBuilder(URI.create(baseUrl() + "/api/problems/" + problemId + "/" + action))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"query\":\"" + escapedQuery + "\"}"))
                 .build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private String cookie;
+    @org.junit.jupiter.api.BeforeEach
+    void signIn() throws Exception {
+        cookie = com.cloudsql.lab.TestAccounts.signup(port);
+    }
+    private HttpRequest.Builder requestBuilder(URI uri) {
+        return HttpRequest.newBuilder(uri).header("Cookie", cookie).header("X-CloudSQL-Request", "1");
+    }
     private String baseUrl() {
         return "http://127.0.0.1:" + port;
     }

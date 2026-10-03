@@ -19,6 +19,8 @@ public class QuerySafetyValidator {
         if (query.isEmpty()) {
             throw new QueryValidationException("Query is required.");
         }
+        try { com.cloudsql.lab.common.LearnerSqlGuard.inspect(query); }
+        catch (IllegalArgumentException exception) { throw new QueryValidationException(exception.getMessage()); }
         if (query.contains("--") || query.contains("/*") || query.contains("*/")) {
             throw new QueryValidationException("SQL comments are not allowed in this execution environment.");
         }
@@ -30,7 +32,7 @@ public class QuerySafetyValidator {
         if (!SELECT_START.matcher(statement).find()) {
             throw new QueryValidationException("Only SELECT statements are allowed.");
         }
-        if (FORBIDDEN_KEYWORD.matcher(statement.toUpperCase(Locale.ROOT)).find()) {
+        if (FORBIDDEN_KEYWORD.matcher(statement.toUpperCase(Locale.ROOT)).find() || Pattern.compile("(?i)\\bINTO\\b").matcher(statement).find()) {
             throw new QueryValidationException("The query contains a statement or keyword that is not allowed.");
         }
         if (FORBIDDEN_NAMESPACE.matcher(statement).find()) {

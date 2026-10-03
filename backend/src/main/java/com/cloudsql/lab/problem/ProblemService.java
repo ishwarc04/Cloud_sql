@@ -58,14 +58,21 @@ public class ProblemService {
 
     public SubmissionResponse submit(long id, String rawQuery) {
         ProblemDefinition problem = getProblem(id);
-        String query = validator.validate(rawQuery);
-        ExecuteQueryResponse candidate = executeQuery(id, query);
+        ExecuteQueryResponse candidate;
+        try {
+            String query = validator.validate(rawQuery);
+            candidate = executeQuery(id, query);
+        } catch (QueryValidationException | QueryExecutionException exception) {
+            progressRepository.recordAttempt(currentUserProvider.currentUserId(), id, false, 0, rawQuery, "ERROR");
+            throw exception;
+        }
         ExecuteQueryResponse expected = executeQuery(id, problem.solutionQuery());
         boolean correct = resultsMatch(candidate, expected);
-        ProblemProgress progress = progressRepository.recordAttempt(currentUserProvider.currentUserId(), id, correct);
+        var attempt = progressRepository.recordAttempt(currentUserProvider.currentUserId(), id, correct, pointsFor(problem.difficulty()), rawQuery, correct ? "ACCEPTED" : "WRONG_ANSWER");
+        ProblemProgress progress = attempt.progress();
         String message = correct ? "Accepted — your result matches the expected output." : "Not accepted — compare your columns, values, and row order with the requested output.";
         return new SubmissionResponse(candidate.columns(), candidate.rows(), candidate.executionTimeMs(), null,
-                correct, message, progress.status(), progress.attempts());
+                correct, message, progress.status(), progress.attempts(), attempt.pointsAwarded());
     }
 
     private ExecuteQueryResponse executeQuery(long id, String query) {
@@ -96,6 +103,10 @@ public class ProblemService {
         } catch (SQLException exception) {
             throw new QueryExecutionException(cleanSqlMessage(exception.getMessage()));
         }
+    }
+
+    public static int pointsFor(String difficulty) {
+        return switch (difficulty) { case "Easy" -> 10; case "Medium" -> 20; case "Hard" -> 30; default -> throw new IllegalArgumentException("Unknown difficulty"); };
     }
 
     private ProblemDefinition getProblem(long id) {

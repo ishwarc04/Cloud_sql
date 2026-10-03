@@ -12,6 +12,7 @@ export function ProblemListPage() {
   const [problems, setProblems] = useState<ProblemSummary[]>([])
   const [search, setSearch] = useState('')
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('All')
+  const [category, setCategory] = useState('All')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,8 +44,8 @@ export function ProblemListPage() {
     const matchesDifficulty = difficulty === 'All' || problem.difficulty === difficulty
     const query = search.trim().toLowerCase()
     const matchesSearch = !query || `${problem.title} ${problem.topic}`.toLowerCase().includes(query)
-    return matchesDifficulty && matchesSearch
-  }), [difficulty, problems, search])
+    return matchesDifficulty && matchesSearch && (category === 'All' || problem.topic === category)
+  }), [category, difficulty, problems, search])
 
   return <section className="page practice-list-page">
     <header className="page-header">
@@ -55,6 +56,7 @@ export function ProblemListPage() {
     <div className="problem-toolbar">
       <label className="problem-search"><Icon name="search" /><span className="sr-only">Search problems</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title or topic" /></label>
       <label className="filter-control"><span>Difficulty</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value as DifficultyFilter)}><option>All</option><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
+      <label className="filter-control"><span>Category</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{['All', 'Basic Select', 'Advanced Select', 'Aggregation', 'Basic Join', 'Advanced Join', 'Alternative Queries'].map(value => <option key={value}>{value}</option>)}</select></label>
     </div>
 
     <div className="problem-table" aria-live="polite">
@@ -63,7 +65,7 @@ export function ProblemListPage() {
       {error && <div className="inline-state error-state"><span>{error}</span><button type="button" onClick={() => void loadProblems()}>Retry</button></div>}
       {!loading && !error && filteredProblems.map((problem) => <Link className="problem-row" to={`/practice/${problem.id}`} key={problem.id}>
         <ProgressStatus status={problem.status} />
-        <strong>{problem.title}</strong>
+        <strong>{problem.title}<small className="problem-points">{problem.difficulty === 'Easy' ? 10 : problem.difficulty === 'Medium' ? 20 : 30} points</small></strong>
         <DifficultyBadge difficulty={problem.difficulty} />
         <span className="topic-label">{problem.topic}</span>
         <Icon name="chevron" />

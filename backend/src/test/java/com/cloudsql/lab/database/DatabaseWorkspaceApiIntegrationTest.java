@@ -80,11 +80,11 @@ class DatabaseWorkspaceApiIntegrationTest {
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
-        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        return client.send(requestBuilder(URI.create(baseUrl() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> delete(String path) throws IOException, InterruptedException {
-        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + path)).DELETE().build(), HttpResponse.BodyHandlers.ofString());
+        return client.send(requestBuilder(URI.create(baseUrl() + path)).DELETE().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> execute(String id, String query) throws IOException, InterruptedException {
@@ -92,11 +92,19 @@ class DatabaseWorkspaceApiIntegrationTest {
     }
 
     private HttpResponse<String> post(String path, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl() + path)).header("Content-Type", "application/json")
+        HttpRequest request = requestBuilder(URI.create(baseUrl() + path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body)).build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private String cookie;
+    @org.junit.jupiter.api.BeforeEach
+    void signIn() throws Exception {
+        cookie = com.cloudsql.lab.TestAccounts.signup(port);
+    }
+    private HttpRequest.Builder requestBuilder(URI uri) {
+        return HttpRequest.newBuilder(uri).header("Cookie", cookie).header("X-CloudSQL-Request", "1");
+    }
     private String baseUrl() {
         return "http://127.0.0.1:" + port;
     }

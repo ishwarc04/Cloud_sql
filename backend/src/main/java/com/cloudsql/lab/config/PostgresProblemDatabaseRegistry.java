@@ -31,10 +31,16 @@ public class PostgresProblemDatabaseRegistry implements ProblemDatabaseRegistry 
             String schema = schemaName(problem.id());
             try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
                 connection.setAutoCommit(false);
-                statement.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
-                statement.execute("CREATE SCHEMA " + schema);
-                statement.execute("SET LOCAL search_path TO " + schema + ", pg_temp");
-                new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).populate(connection);
+                statement.execute("SELECT pg_advisory_xact_lock(" + (900000 + problem.id()) + ")");
+                statement.execute("CREATE SCHEMA IF NOT EXISTS " + schema);
+                boolean seeded;
+                try (var result = statement.executeQuery("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" + schema + "'")) {
+                    result.next(); seeded = result.getInt(1) > 0;
+                }
+                if (!seeded) {
+                    statement.execute("SET LOCAL search_path TO " + schema + ", pg_temp");
+                    new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).populate(connection);
+                }
                 connection.commit();
             } catch (SQLException exception) {
                 throw new IllegalStateException("Could not initialize SQL Practice problem " + problem.id() + ".", exception);

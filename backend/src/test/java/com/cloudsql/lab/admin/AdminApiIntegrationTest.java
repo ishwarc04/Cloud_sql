@@ -31,12 +31,12 @@ class AdminApiIntegrationTest {
         assertThat(overview.statusCode()).isEqualTo(200);
         assertThat(overview.body()).contains(
                 "\"totalDatabaseWorkspaces\":1", "\"activeDatabaseWorkspaces\":1",
-                "\"totalPracticeProblems\":3", "\"totalPracticeAttempts\":1",
+                "\"totalPracticeProblems\":15", "\"totalPracticeAttempts\":1",
                 "\"serviceStatus\":\"OPERATIONAL\"");
 
         HttpResponse<String> databases = get("/api/admin/databases");
         assertThat(databases.statusCode()).isEqualTo(200);
-        assertThat(databases.body()).contains("Admin Visibility Test", "local-user", databaseId,
+        assertThat(databases.body()).contains("Admin Visibility Test", auth.resolve(cookie.substring(cookie.indexOf('=') + 1)).id(), databaseId,
                 "storageUsedBytes", "storageLimitBytes");
         assertThat(databases.body()).doesNotContain("internalWorkspaceId", "jdbc:h2", "data/workspaces", "password", "connection");
 
@@ -50,19 +50,32 @@ class AdminApiIntegrationTest {
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
-        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        return client.send(requestBuilder(URI.create(baseUrl() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> delete(String path) throws IOException, InterruptedException {
-        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + path)).DELETE().build(), HttpResponse.BodyHandlers.ofString());
+        return client.send(requestBuilder(URI.create(baseUrl() + path)).DELETE().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> post(String path, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl() + path)).header("Content-Type", "application/json")
+        HttpRequest request = requestBuilder(URI.create(baseUrl() + path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body)).build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private String cookie;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.auth.PasswordHasher passwords;
+    @org.springframework.beans.factory.annotation.Autowired private com.cloudsql.lab.auth.AuthService auth;
+    @org.junit.jupiter.api.BeforeEach
+    void signIn() throws Exception {
+        String email = java.util.UUID.randomUUID() + "@example.test";
+        new com.cloudsql.lab.auth.AdminProvisioner(jdbc, passwords, email, com.cloudsql.lab.TestAccounts.PASSWORD).run(null);
+        cookie = com.cloudsql.lab.TestAccounts.login(port, email);
+    }
+    private HttpRequest.Builder requestBuilder(URI uri) {
+        return HttpRequest.newBuilder(uri).header("Cookie", cookie).header("X-CloudSQL-Request", "1");
+    }
     private String baseUrl() {
         return "http://127.0.0.1:" + port;
     }

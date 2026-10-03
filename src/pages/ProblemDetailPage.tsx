@@ -83,7 +83,7 @@ function ProblemWorkspace({ problemId }: { problemId: number }) {
 
     <div className="practice-layout">
       <aside className="schema-panel">
-        <div className="panel-heading"><div><span>Sample database</span><strong>Schema and data</strong></div><span className="engine-tag">H2 · isolated</span></div>
+        <div className="panel-heading"><div><span>Sample database</span><strong>Schema and data</strong></div><span className="engine-tag">Isolated practice dataset</span></div>
         {problem.tables.map((table) => <section className="schema-table" key={table.name}>
           <div className="schema-table-name"><Icon name="database" /><strong>{table.name}</strong></div>
           <div className="data-scroll"><table><thead><tr>{table.columns.map((column) => <th key={column.name}><span>{column.name}</span><small>{column.type}</small></th>)}</tr></thead><tbody>{table.sampleRows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{displayCell(cell)}</td>)}</tr>)}</tbody></table></div>
@@ -94,7 +94,7 @@ function ProblemWorkspace({ problemId }: { problemId: number }) {
         <form className="editor-panel" onSubmit={runQuery}>
           <div className="panel-heading editor-heading"><div><span>Query editor</span><strong>solution.sql</strong></div><span className="read-only-note">SELECT only</span></div>
           <div className="editor-shell"><div className="line-rail" aria-hidden="true">1<br />2<br />3<br />4<br />5<br />6<br />7<br />8</div><textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} /></div>
-          <div className="editor-footer"><span>H2 SQL · maximum 200 rows</span><div className="editor-actions"><button className="run-button run-secondary" type="submit" disabled={Boolean(running) || !query.trim()}>{running === 'run' ? <><span className="spinner" />Running</> : 'Run'}</button><button className="run-button" type="button" onClick={() => void submitQuery()} disabled={Boolean(running) || !query.trim()}>{running === 'submit' ? <><span className="spinner" />Judging</> : <><Icon name="check" />Submit solution</>}</button></div></div>
+          <div className="editor-footer"><span>SQL · maximum 200 rows</span><div className="editor-actions"><button className="run-button run-secondary" type="submit" disabled={Boolean(running) || !query.trim()}>{running === 'run' ? <><span className="spinner" />Running</> : 'Run'}</button><button className="run-button" type="button" onClick={() => void submitQuery()} disabled={Boolean(running) || !query.trim()}>{running === 'submit' ? <><span className="spinner" />Judging</> : <><Icon name="check" />Submit solution</>}</button></div></div>
         </form>
 
         <section className="results-panel" aria-live="polite">
@@ -102,7 +102,7 @@ function ProblemWorkspace({ problemId }: { problemId: number }) {
           {running && <div className="inline-state result-empty"><span className="spinner" />{running === 'submit' ? 'Checking solution…' : 'Executing query…'}</div>}
           {!running && queryError && <div className="query-error"><strong>Execution failed</strong><p>{queryError}</p></div>}
           {!running && !queryError && !result && <div className="inline-state result-empty">Run the query to inspect its result.</div>}
-          {!running && result && <>{submission && <div className={`submission-verdict ${submission.correct ? 'is-correct' : 'is-incorrect'}`}><span className="verdict-icon"><Icon name={submission.correct ? 'check' : 'close'} /></span><div><strong>{submission.correct ? 'Solution accepted' : 'Result does not match'}</strong><p>{submission.message}</p></div></div>}<div className="data-scroll result-scroll"><table><thead><tr>{result.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{displayCell(cell)}</td>)}</tr>)}</tbody></table>{result.rows.length === 0 && <div className="inline-state">Query completed with no rows.</div>}</div></>}
+          {!running && result && <>{submission && <div className={`submission-verdict ${submission.correct ? 'is-correct' : 'is-incorrect'}`}><span className="verdict-icon"><Icon name={submission.correct ? 'check' : 'close'} /></span><div><strong>{submission.correct ? 'Solution accepted' : 'Result does not match'}</strong><p>{submission.message} {submission.correct && (submission.pointsAwarded > 0 ? `+${submission.pointsAwarded} points earned.` : 'Already solved — no additional points.')}</p></div></div>}<div className="data-scroll result-scroll"><table><thead><tr>{result.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{displayCell(cell)}</td>)}</tr>)}</tbody></table>{result.rows.length === 0 && <div className="inline-state">Query completed with no rows.</div>}</div></>}
         </section>
       </div>
     </div>

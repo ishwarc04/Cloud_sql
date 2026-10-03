@@ -10,5 +10,6 @@ public record SubmissionResponse(
         boolean correct,
         String message,
         String status,
-        int attempts) {
+        int attempts,
+        int pointsAwarded) {
 }

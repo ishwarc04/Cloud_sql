@@ -35,6 +35,7 @@ export interface QueryResult {
 }
 
 export interface SubmissionResult extends QueryResult {
+  pointsAwarded: number
   correct: boolean
   message: string
   status: ProblemStatus

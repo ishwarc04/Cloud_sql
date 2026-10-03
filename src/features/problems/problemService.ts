@@ -1,5 +1,5 @@
 import type { ProblemDetail, ProblemSummary, QueryResult, SubmissionResult } from './types'
-import { apiUrl } from '../../app/api'
+import { apiFetch } from '../../app/api'
 
 class ApiError extends Error {
   readonly status: number
@@ -11,7 +11,7 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(apiUrl(path), options)
+  const response = await apiFetch(path, options)
   const payload = await response.json().catch(() => null) as T | { error?: string } | null
 
   if (!response.ok) {

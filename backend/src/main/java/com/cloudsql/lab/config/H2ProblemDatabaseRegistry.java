@@ -26,7 +26,7 @@ public class H2ProblemDatabaseRegistry implements ProblemDatabaseRegistry {
     @PostConstruct
     void initialize() {
         problemRepository.findAll().forEach(problem -> {
-            String url = "jdbc:h2:mem:practice_" + problem.id() + ";DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false";
+            String url = "jdbc:h2:mem:practice_" + problem.id() + "_" + java.util.UUID.randomUUID() + ";DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false";
             DataSource dataSource = new DriverManagerDataSource(url, "sa", "");
             new ResourceDatabasePopulator(new ClassPathResource(problem.seedScript())).execute(dataSource);
             dataSources.put(problem.id(), dataSource);

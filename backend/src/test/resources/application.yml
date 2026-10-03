@@ -11,6 +11,8 @@ spring:
       mode: always
 
 cloudsql:
+  auth:
+    cookie-secure: false
   cors:
     allowed-origins: http://localhost:5173
   workspaces:

@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    ResponseEntity<java.util.Map<String, String>> handleAuth(org.springframework.web.server.ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode()).body(java.util.Map.of("error", exception.getReason() == null ? "Request failed." : exception.getReason()));
+    }
     @ExceptionHandler(WorkspaceNotFoundException.class)
     ResponseEntity<WorkspaceExecutionResponse> handleWorkspaceNotFound(WorkspaceNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(WorkspaceExecutionResponse.error(exception.getMessage()));

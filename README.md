@@ -15,7 +15,7 @@ $env:DATABASE_PASSWORD="YOUR_NEON_PASSWORD"
 $env:CORS_ALLOWED_ORIGINS="http://localhost:5173"
 ```
 
-Spring Boot initializes the `platform` schema and the three isolated practice schemas automatically. Personal databases use generated `workspace_<internal-id>` schemas. The React app never receives database credentials.
+Spring Boot initializes the `platform` schema and 15 isolated practice schemas automatically. Initialization is idempotent: existing practice datasets are preserved, and empty schemas are seeded transactionally under a PostgreSQL advisory lock. Personal databases use generated `workspace_<internal-id>` schemas. The React app never receives database credentials.
 
 ## 2. Run locally
 
@@ -32,13 +32,31 @@ npm install
 npm run dev
 ```
 
-For local Vite, set `VITE_API_BASE_URL=http://localhost:8080`. `VITE_DEV_ROLE` may be `user` or `admin`; this is only a temporary frontend demo role.
+Use Node.js 22 or later and Java 21 or later. For local Vite, set `VITE_API_BASE_URL=http://localhost:8080`. Set backend `AUTH_COOKIE_SECURE=false` only for local HTTP, with `AUTH_COOKIE_SAME_SITE=Lax`. Use the same hostname for both services (for example, `localhost`). Backend configuration reads process environment variables; copying `.env.example` does not automatically load backend variables.
+
+## User accounts and progress
+
+- Public signup always creates `USER`, regardless of any submitted role field. Passwords require 12–128 characters and are stored with salted PBKDF2-HMAC-SHA256 (600,000 iterations).
+- Login creates a random 256-bit opaque session token in an HttpOnly cookie. Only its SHA-256 hash is stored in PostgreSQL. Sessions expire after `AUTH_SESSION_HOURS` (default 24), survive backend restarts, rotate on login, and are revoked on logout. The browser never stores tokens in localStorage or sessionStorage.
+- All application APIs require a session except signup, login, logout, and `/api/health`. Admin APIs additionally require `ADMIN`. Personal database and learning data are scoped to the authenticated account.
+- Mutations require `X-CloudSQL-Request: 1`; browser requests use exact-origin credentialed CORS. Failed logins are limited to 10 per normalized email in a rolling 15-minute window, persisted in PostgreSQL.
+- Easy/Medium/Hard solutions earn 10/20/30 points once. Progress, points, and submission history commit in one transaction with an account-row lock, preventing concurrent duplicate awards. Wrong answers and query errors count as attempts; Run Query does not.
+- The dashboard shows points, solved problems, attempt count, difficulty/category progress, and the 10 most recent submissions. Twelve new original makerspace problems cover Basic Select, Advanced Select, Aggregation, Basic Join, Advanced Join, and Alternative Queries. The three existing problems remain available.
+- Learner SQL uses a conservative supported-function list and blocks platform schemas, session-changing functions, alternate escaping, and qualified tables. Some advanced PostgreSQL functions are intentionally unavailable.
+- Existing `local-user` demo workspaces/progress remain unassigned and are never automatically attributed to a real account.
+
+### Trusted admin provisioning
+
+Set **backend-only** `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables before startup to seed an admin. The password must be 12–128 characters. Provisioning runs once for a new email, preserves an existing admin on restart, and refuses to promote a public user with the same email. Use a fresh provisioning email. Remove these variables after provisioning if desired; the persisted account remains. Never prefix secrets with `VITE_`, commit them, or expose an admin signup form. There is no role-change API. Admin Dashboard features are unchanged.
 
 ## 3. Deploy (free-tier friendly)
 
-- Backend: create a Render Blueprint from `render.yaml`, then enter the four backend environment variables in Render.
-- Frontend: import the repository into Vercel, use the repository root, and set `VITE_API_BASE_URL` to the Render API URL plus `VITE_DEV_ROLE` as needed.
-- Finally set Render's `CORS_ALLOWED_ORIGINS` to the exact Vercel site origin and redeploy the backend.
+- Backend: create a Render Blueprint from `render.yaml`, then set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `CORS_ALLOWED_ORIGINS`. Keep `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAME_SITE=Lax` in production. Render's public health check is `/api/health`.
+- Frontend: import the repository root into Vercel using Vite. The proxy reuses the existing `VITE_API_BASE_URL` environment variable, or you can explicitly set server-side `BACKEND_API_URL=https://YOUR-BACKEND.onrender.com` (origin only, no `/api`). Production browser requests always use `/api/*`, handled by the fixed-upstream serverless proxy before the SPA rewrite. It forwards session cookies and request protection headers without caching responses; sessions belong to the Vercel site origin, avoiding third-party cookie dependence.
+- Set Render's `CORS_ALLOWED_ORIGINS` to the **exact** Vercel site origin, with no trailing slash or wildcard (for example, `https://your-project.vercel.app`). Multiple trusted origins may be comma-separated. Browser preview origins require explicit inclusion; avoid wildcard preview access. The proxy preserves Origin so the backend still enforces this allowlist.
+- Existing Render services created without Blueprint synchronization may still have `/api/problems` as their health-check path. Change it to `/api/health`; application APIs now require authentication. Database and exact-origin CORS environment variables remain on the existing service.
+
+These are configuration instructions only. No push or deployment occurs automatically.
 
 ## Verification
 

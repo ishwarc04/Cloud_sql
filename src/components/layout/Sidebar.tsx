@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../../app/auth/AuthContext'
 import { Icon, type IconName } from '../ui/Icon'
 
@@ -9,7 +10,14 @@ const navigation: Array<{ label: string; to: string; icon: IconName }> = [
 ]
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { role } = useAuth()
+  const { role, user, logout } = useAuth()
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
+  async function signOut() {
+    setLoggingOut(true); setLogoutError(null)
+    try { await logout() } catch { setLogoutError('Sign out failed. Please retry.') }
+    finally { setLoggingOut(false) }
+  }
 
   return <>
     <button className={`sidebar-backdrop ${open ? 'is-visible' : ''}`} onClick={onClose} aria-label="Close navigation" />
@@ -27,7 +35,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       </nav>
       <div className="sidebar-footer">
         <NavLink to="/settings" onClick={onClose} className={({ isActive }) => `nav-item ${isActive ? 'is-active' : ''}`}><Icon name="settings" /><span>Settings</span></NavLink>
-        <div className="user-card"><div className="user-avatar">IS</div><div><strong>Ishwar</strong><span>{role === 'admin' ? 'Administrator' : 'Student account'}</span></div><span className="role-indicator">{role === 'admin' ? 'A' : 'U'}</span></div>
+        <div className="user-card"><div className="user-avatar">{user?.name.slice(0, 2).toUpperCase()}</div><div><strong>{user?.name}</strong><span>{role === 'admin' ? 'Administrator' : 'Student account'}</span></div><span className="role-indicator">{role === 'admin' ? 'A' : 'U'}</span></div>
+        <button className="logout-button" disabled={loggingOut} onClick={() => void signOut()}>{loggingOut ? 'Signing out…' : 'Sign out'}</button>
+        {logoutError && <p className="error-state" role="alert">{logoutError}</p>}
       </div>
     </aside>
   </>

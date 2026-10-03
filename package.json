@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": { "node": ">=22" },
   "scripts": {
+    "test:proxy": "node --test tests/api-proxy.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
