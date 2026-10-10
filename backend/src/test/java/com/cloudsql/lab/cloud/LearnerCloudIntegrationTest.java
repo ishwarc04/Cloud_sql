@@ -46,28 +46,41 @@ class LearnerCloudIntegrationTest {
         return client.send(request.method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
     String checkout(String id, boolean failure) { return "{\"requestId\":\"" + id + "\",\"simulateFailure\":" + failure + "}"; }
-    @Test void demoCheckoutEnforcesQuotasIsolationDeclineAndIdempotency() throws Exception {
-        assertThat(send("GET", "/api/billing", null, null).statusCode()).isEqualTo(401);
-        assertThat(send("POST", "/api/billing/upgrade", admin, checkout(UUID.randomUUID().toString(), false)).statusCode()).isEqualTo(403);
-        for (int i = 0; i < 2; i++) assertThat(send("POST", "/api/databases", learner, "{\"name\":\"Original " + i + "\"}").statusCode()).isEqualTo(201);
-        assertThat(send("POST", "/api/databases", learner, "{\"name\":\"Over quota\"}").statusCode()).isEqualTo(409);
-        String declined = UUID.randomUUID().toString();
-        assertThat(send("POST", "/api/billing/upgrade", learner, checkout(declined, true)).body()).contains("FREE", "DECLINED");
-        assertThat(send("POST", "/api/billing/upgrade", learner, checkout(declined, false)).body()).contains("FREE");
-        assertThat(send("POST", "/api/billing/upgrade", learner, "{\"requestId\":\"invalid\"}").statusCode()).isEqualTo(400);
-        String receipt = UUID.randomUUID().toString();
-        String payload = checkout(receipt, false);
-        var successful = send("POST", "/api/billing/upgrade", learner, payload);
-        assertThat(successful.statusCode()).as(successful.body()).isEqualTo(200);
-        assertThat(successful.body()).contains("PRO", "52428800", "19900", "SUCCESS", "\"demoOnly\":true");
-        send("POST", "/api/billing/upgrade", learner, payload);
-        send("POST", "/api/billing/upgrade", learner, checkout(UUID.randomUUID().toString(), false));
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM platform.demo_payments WHERE user_id = ? AND status = 'SUCCESS'", Integer.class, owner)).isEqualTo(1);
-        assertThat(catalog.findByOwner(owner)).allMatch(w -> w.storageLimitBytes() == 50L * 1024 * 1024);
-        for (int i = 2; i < 5; i++) assertThat(send("POST", "/api/databases", learner, "{\"name\":\"Pro " + i + "\"}").statusCode()).isEqualTo(201);
-        assertThat(send("POST", "/api/databases", learner, "{\"name\":\"Still limited\"}").statusCode()).isEqualTo(409);
-        assertThat(send("GET", "/api/billing", other, null).body()).contains("FREE").doesNotContain(receipt);
-        assertThat(send("GET", "/api/databases", learner, null).body()).contains("\"maximumDatabases\":5", "262144000");
+    @org.springframework.test.context.bean.override.mockito.MockitoBean RazorpayGateway gateway;
+    @Test void verifiedPaymentsEnforceOwnershipCaptureQuotasAndIdempotency() throws Exception {
+        org.mockito.Mockito.when(gateway.configured()).thenReturn(true);
+        org.mockito.Mockito.when(gateway.publicKey()).thenReturn("rzp_test_example");
+        org.mockito.Mockito.when(gateway.order(org.mockito.ArgumentMatchers.anyString())).thenReturn(Map.of("id","order_test1","amount",19900,"currency","INR"));
+        String sig="a".repeat(64);
+        String payload="{\"orderId\":\"order_test1\",\"paymentId\":\"pay_test1\",\"signature\":\""+sig+"\"}";
+        assertThat(send("GET","/api/billing/payments",null,null).statusCode()).isEqualTo(401);
+        assertThat(send("GET","/api/admin/payments",learner,null).statusCode()).isEqualTo(403);
+        assertThat(send("POST","/api/billing/orders",admin,null).statusCode()).isEqualTo(403);
+        assertThat(send("POST","/api/billing/upgrade",learner,checkout(UUID.randomUUID().toString(),false)).statusCode()).isEqualTo(410);
+        for(int i=0;i<2;i++) assertThat(send("POST","/api/databases",learner,"{\"name\":\"Original "+i+"\"}").statusCode()).isEqualTo(201);
+        assertThat(send("POST","/api/databases",learner,"{\"name\":\"Over quota\"}").statusCode()).isEqualTo(409);
+        assertThat(send("POST","/api/billing/orders",learner,null).body()).contains("order_test1","19900");
+        send("POST","/api/billing/orders",learner,null);
+        org.mockito.Mockito.verify(gateway,org.mockito.Mockito.times(1)).order(org.mockito.ArgumentMatchers.anyString());
+        assertThat(send("POST","/api/billing/verify",other,payload).statusCode()).isEqualTo(404);
+        assertThat(send("POST","/api/billing/verify",learner,payload).statusCode()).isEqualTo(400);
+        org.mockito.Mockito.when(gateway.signatureValid("order_test1","pay_test1",sig)).thenReturn(true);
+        org.mockito.Mockito.when(gateway.payment("pay_test1")).thenReturn(Map.of("id","pay_test1","order_id","order_test1","amount",19900,"currency","INR","status","authorized"));
+        assertThat(send("POST","/api/billing/verify",learner,payload).statusCode()).isEqualTo(409);
+        assertThat(send("GET","/api/billing",learner,null).body()).contains("FREE");
+        org.mockito.Mockito.when(gateway.payment("pay_test1")).thenReturn(Map.of("id","pay_test1","order_id","order_test1","amount",1,"currency","INR","status","captured"));
+        assertThat(send("POST","/api/billing/verify",learner,payload).statusCode()).isEqualTo(400);
+        var captured=Map.<String,Object>of("id","pay_test1","order_id","order_test1","amount",19900,"currency","INR","status","captured");
+        org.mockito.Mockito.when(gateway.orderPayments("order_test1")).thenReturn(Map.of("items",List.of(captured)));
+        assertThat(send("POST","/api/billing/orders/order_test1/refresh",learner,null).body()).contains("PAID");
+        org.mockito.Mockito.when(gateway.payment("pay_test1")).thenReturn(captured);
+        assertThat(send("POST","/api/billing/verify",learner,payload).statusCode()).isEqualTo(200);
+        assertThat(send("GET","/api/billing",learner,null).body()).contains("PRO","52428800");
+        assertThat(catalog.findByOwner(owner)).allMatch(w->w.storageLimitBytes()==50L*1024*1024);
+        assertThat(send("GET","/api/billing/payments",other,null).body()).doesNotContain("pay_test1");
+        assertThat(send("GET","/api/admin/payments",admin,null).body()).contains("pay_test1","PAID","@example.test");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM platform.audit_events WHERE actor_id=? AND action='RAZORPAY_TEST_PAYMENT'",Integer.class,owner)).isEqualTo(1);
+        assertThat(send("POST","/api/billing/orders",learner,null).statusCode()).isEqualTo(409);
     }
     @Test void leaderboardUsesEarnedPointsExcludesAdminsAndNeverExposesPrivateData() throws Exception {
         jdbc.update("UPDATE platform.users SET name = ? WHERE id = ?", "Leader One", owner);

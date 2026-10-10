@@ -69,20 +69,20 @@ Snapshots preserve supported column types, nullability, primary keys, and rows. 
 
 Saved snapshots are kept in the same Neon database. Downloading one gives the learner an independent copy. This is a logical recovery feature, not a complete replacement for provider disaster recovery backups.
 
-### Plans and demo billing
+### Plans and Razorpay test billing
 
 The billing page demonstrates how a cloud service can offer different resource allocations.
 
 | Plan | Database workspaces | Storage per workspace | Payment |
 |---|---:|---:|---|
 | Free | 2 | 10 MB | None |
-| Lab Pro | 5 | 50 MB | Simulated ₹199 one-time payment |
+| Lab Pro | 5 | 50 MB | ₹199 Razorpay test payment |
 
 These are the current default allocations. If backend defaults are increased, Pro keeps at least its advertised allocation.
 
-A successful simulation persists the Pro plan and increases limits on existing and new workspaces. A declined simulation preserves the current plan. The backend determines prices and limits, and repeated requests cannot create duplicate successful upgrades. Snapshot limits remain separate.
+The backend creates a fixed-price Razorpay order, verifies the payment signature, checks the provider reports a matching captured payment, and then activates Pro and raises existing workspace quotas. Repeated verification is idempotent. A failed or unverified payment never unlocks Pro. Use Check status to recover a captured payment after a closed browser or interrupted callback. Snapshot limits remain separate.
 
-**This is demo billing:** no real money moves, no card or UPI details are collected, and there is no real payment gateway or recurring charge. It demonstrates service tiers and resource allocation, not actual pay-per-byte billing.
+**Razorpay test mode only:** no real money moves. Payment details are entered in Razorpay Checkout, not collected or stored by CloudSQL. Admin Payments lists learner identity, order/payment IDs, amount, status, and timestamps. Earlier simulated receipts remain in PostgreSQL, separately from verified Razorpay orders.
 
 ## 3. Administrator level: management and cloud concepts
 
@@ -197,7 +197,7 @@ Then demonstrate one connected journey:
 4. **Leaderboard:** show the learner's rank and virtual top-three recognition.
 5. **Workspace:** create a database workspace, then create a table, insert a row, and select it.
 6. **Recovery:** save a snapshot, restore it under a new name, and query the restored rows.
-7. **Demo upgrade:** show the Free quota, simulate a successful payment, and show the increased allocation in My Databases.
+7. **Demo upgrade:** show the Free quota, complete a Razorpay test payment, and show the increased allocation in My Databases.
 8. **Admin:** sign out and log in as admin. Show learner management, question creation, and analytics.
 9. **Cloud:** refresh after those actions, switch between Requests and Latency, click Check database, and find the relevant audit events and account consumption.
 10. **Deployment evidence:** show the Dockerfile, a Render deployment, Neon database tables without exposing credentials, and successful GitHub Actions checks.
@@ -300,7 +300,7 @@ This is a suggested division of development ownership and presentation responsib
 |---|---|---|---|
 | 1 | Student frontend, SQL practice, dashboard, leaderboard and rewards | SaaS delivery and browser-to-API interaction | Student journey, first-solve points, rankings, and Vercel hosting |
 | 2 | Authentication, sessions, role/ownership protection and admin learner/question management | Identity management, authorization and tenant access control | USER/ADMIN separation, persisted login, protected APIs, and management forms |
-| 3 | Neon PostgreSQL, personal workspaces, snapshots, plan upgrades and quota enforcement | Managed SQL, logical multi-tenancy, recovery and resource allocation | Workspace SQL, snapshot restoration, demo payment, and increased quotas |
+| 3 | Neon PostgreSQL, personal workspaces, snapshots, plan upgrades and quota enforcement | Managed SQL, logical multi-tenancy, recovery and resource allocation | Workspace SQL, snapshot restoration, Razorpay test payment, and increased quotas |
 | 4 | Admin Cloud monitoring, audit/usage views, Docker, deployment and CI | Cloud operations, accountability, containerization and DevOps | Traffic/latency charts, database probes, audit events, Render build, and GitHub checks |
 
 **Why this split works:** the four parts cover the service students use, the rules controlling access, the data and resources they consume, and the operations that keep the service observable and deployable. Members 2 and 3 agree on account ownership rules; members 3 and 4 agree on how usage and recovery events appear in monitoring.
@@ -312,7 +312,7 @@ The following are proposed improvements, not claims about features already imple
 | Improvement | Benefit and cloud connection |
 |---|---|
 | Stronger recovery | Support more schema features and independent encrypted backup storage; test recovery after a database failure |
-| Real payment integration | Use a provider's sandbox first, then verified webhooks and server-side payment confirmation before production charges |
+| Production payments | Add signed webhooks, refunds, support workflows, and live-key approval before accepting actual payments |
 | Better monitoring and alerts | Add external uptime checks, alerting, and service-level objectives based on defined measurements |
 | Request rate limits | Protect against excessive traffic and improve fair resource usage |
 | Account controls | Add verified email, password recovery, account status management, and stronger admin authentication |
@@ -322,4 +322,14 @@ The following are proposed improvements, not claims about features already imple
 | Scaling experiments | Test multiple backend instances, shared rate limits, load balancing, and connection-pool limits under measured load |
 | Advanced cloud infrastructure | Explore Kubernetes orchestration and private networking where the hosting plan and syllabus require them |
 
-For the current presentation, focus on the real implemented features. Describe workspace schemas as logical isolation and payment as a simulation. Kubernetes, separate virtual machines, VPC/VPN networking, real charges, and automatic infrastructure scaling would require additional work.
+For the current presentation, focus on the real implemented features. Describe workspace schemas as logical isolation and payment as Razorpay test mode. Kubernetes, separate virtual machines, VPC/VPN networking, real charges, and automatic infrastructure scaling would require additional work.
+
+### Razorpay test configuration
+
+Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in the Render backend environment. Only `rzp_test_` keys are accepted. Configure automatic payment capture in the Razorpay test dashboard. No Vercel payment secret is needed: the backend returns only the public checkout key.
+
+For local development, set the database environment variables as usual, then run `./backend/run-local.ps1`. It loads optional ignored `backend/.env.razorpay` values into the backend process environment. Never commit this file. Frontend runs with `npm run dev`.
+
+Flow: learner creates order, completes hosted checkout, backend verifies HMAC-SHA256 and captured status, PostgreSQL records payment and activates Pro atomically. The administrator can inspect Payments after refreshing. A lost callback is recovered by the learner's Check status action; automatic webhook recovery is future work. Displayed amounts are test-mode amounts, not real revenue.
+
+Provider documentation: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/

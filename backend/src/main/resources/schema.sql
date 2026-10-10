@@ -110,6 +110,17 @@ CREATE TABLE IF NOT EXISTS platform.account_plans (
   plan VARCHAR(10) NOT NULL CHECK (plan = 'PRO'),
   upgraded_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+CREATE TABLE IF NOT EXISTS platform.payment_orders (
+  order_id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+  amount_paise INTEGER NOT NULL,
+  currency VARCHAR(3) NOT NULL,
+  status VARCHAR(16) NOT NULL,
+  payment_id VARCHAR(64) UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  paid_at TIMESTAMP WITH TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_user ON platform.payment_orders(user_id, created_at);
 CREATE TABLE IF NOT EXISTS platform.demo_payments (
   user_id VARCHAR(36) NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
   request_id VARCHAR(36) NOT NULL,

@@ -16,7 +16,7 @@ public class LearnerCloudController {
     public LearnerCloudController(JdbcTemplate jdbc, CurrentUserProvider current, AccountPlanService plans) { this.jdbc = jdbc; this.current = current; this.plans = plans; }
     public record Checkout(@NotBlank @Pattern(regexp="[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}") String requestId, boolean simulateFailure) { }
     @GetMapping("/api/billing") public AccountPlanService.Billing billing() { return plans.billing(); }
-    @PostMapping("/api/billing/upgrade") public AccountPlanService.Billing upgrade(@Valid @RequestBody Checkout input) { return plans.upgrade(input.requestId(), input.simulateFailure()); }
+    @PostMapping("/api/billing/upgrade") public AccountPlanService.Billing upgrade(@Valid @RequestBody Checkout input) { throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.GONE, "Use verified Razorpay test checkout."); }
     public record Leader(long rank, String name, long points, long solved, boolean you, String reward) { }
     public record Board(List<Leader> leaders, Leader yourRank) { }
     private static final String RANKED = """

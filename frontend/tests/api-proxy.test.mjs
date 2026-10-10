@@ -5,6 +5,17 @@ import handler from '../../api/proxy.mjs'
 const originalFetch = globalThis.fetch
 const originalBackend = process.env.BACKEND_API_URL
 const originalViteBackend = process.env.VITE_API_BASE_URL
+test('allows payment checkout, recovery and admin history through the fixed backend', async () => {
+  process.env.BACKEND_API_URL = 'https://backend.example'
+  for (const path of ['billing/orders', 'billing/verify', 'billing/payments', 'billing/orders/order_test123/refresh', 'admin/payments']) {
+    let target
+    globalThis.fetch = async url => { target = url.toString(); return new Response('{}') }
+    const result = response()
+    await handler({ method: 'POST', query: { path }, headers: {} }, result)
+    assert.equal(result.code, 200)
+    assert.equal(target, `https://backend.example/api/${path}`)
+  }
+})
 afterEach(() => {
   globalThis.fetch = originalFetch
   if (originalBackend === undefined) delete process.env.BACKEND_API_URL
