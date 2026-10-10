@@ -39,9 +39,9 @@ export function BillingPage() {
       await loadCheckout()
       const order = await apiRequest<Checkout>('/api/billing/orders', { method: 'POST' })
       if (!window.Razorpay) throw new Error('Checkout is unavailable.')
-      const checkout = new window.Razorpay({ key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId, name: 'CloudSQL Lab', description: 'Lab Pro — test payment', theme: { color: '#AA6108' },
+      const checkout = new window.Razorpay({ key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId, name: 'CloudSQL Lab', description: 'Lab Pro upgrade', theme: { color: '#AA6108' },
         handler: result => { void (async () => {
-          try { await apiRequest('/api/billing/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: result.razorpay_order_id, paymentId: result.razorpay_payment_id, signature: result.razorpay_signature }) }); await reload(); setMessage('Test payment verified. Pro is now active.') }
+          try { await apiRequest('/api/billing/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: result.razorpay_order_id, paymentId: result.razorpay_payment_id, signature: result.razorpay_signature }) }); await reload(); setMessage('Payment verified. Pro is now active.') }
           catch (e) { setError(e instanceof Error ? e.message : 'Verification failed. Use Check status in payment history to retry.') }
           finally { setBusy(false) }
         })() }, modal: { ondismiss: () => { setBusy(false); setMessage('Checkout closed. You can resume checkout or check payment status below.'); void reload().catch(() => {}) } } })
@@ -49,10 +49,10 @@ export function BillingPage() {
       await reload(); checkout.open()
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to start payment.'); setBusy(false) }
   }
-  return <section className="page"><header className="page-header"><div><span className="eyebrow">Cloud resource plans</span><h1>Plans & Billing</h1><p>Upgrade your database allocation using Razorpay test checkout.</p></div><Link className="secondary-button" to="/databases">My Databases</Link></header>
-    <div className="learner-rank-banner"><strong>Razorpay test mode</strong><span>No real money is charged. Use Razorpay test payment details.</span></div>
+  return <section className="page"><header className="page-header"><div><span className="eyebrow">Cloud resource plans</span><h1>Plans & Billing</h1><p>Upgrade your database allocation with secure Razorpay checkout.</p></div><Link className="secondary-button" to="/databases">My Databases</Link></header>
+    <p className="ops-caption">Demonstration checkout. No real money is charged.</p>
     {error && <p className="error-state" role="alert">{error}</p>}{message && <p className="backup-message" role="status">{message}</p>}
-    {data && history ? <><div className="billing-plan-grid"><article className="ops-card reward-card"><span className="eyebrow">Your current allocation</span><h2>{data.plan.name === 'PRO' ? 'Lab Pro' : 'Free learner'}</h2><strong>{data.plan.maximumDatabases} databases</strong><p>{formatBytes(data.plan.storagePerDatabaseBytes)} per database</p><p>{formatBytes(data.plan.storagePerDatabaseBytes * data.plan.maximumDatabases)} total available allocation</p></article><article className="ops-card reward-card"><h2>Lab Pro</h2><strong>₹199 one-time test payment</strong><p>At least 5 databases · 50 MB per database</p><p>Applies to existing and new workspaces after backend verification.</p><button className="primary-button" disabled={busy || !history.configured || data.plan.name === 'PRO'} onClick={() => void pay()}>{data.plan.name === 'PRO' ? 'Pro active' : busy ? 'Processing…' : 'Pay with Razorpay (test)'}</button>{!history.configured && <p>Test checkout is awaiting backend configuration.</p>}</article></div>
+    {data && history ? <><div className="billing-plan-grid"><article className="ops-card reward-card"><span className="eyebrow">Your current allocation</span><h2>{data.plan.name === 'PRO' ? 'Lab Pro' : 'Free learner'}</h2><strong>{data.plan.maximumDatabases} databases</strong><p>{formatBytes(data.plan.storagePerDatabaseBytes)} per database</p><p>{formatBytes(data.plan.storagePerDatabaseBytes * data.plan.maximumDatabases)} total available allocation</p></article><article className="ops-card reward-card"><h2>Lab Pro</h2><strong>₹199 one-time upgrade</strong><p>At least 5 databases · 50 MB per database</p><p>Applies to existing and new workspaces after backend verification.</p><button className="primary-button" disabled={busy || !history.configured || data.plan.name === 'PRO'} onClick={() => void pay()}>{data.plan.name === 'PRO' ? 'Pro active' : busy ? 'Processing…' : 'Pay with Razorpay'}</button>{!history.configured && <p>Checkout is awaiting backend configuration.</p>}</article></div>
     <PaymentHistory report={history} busy={busy} onRefresh={id => void refreshOrder(id)} /></> : !error && <p>Loading your plan…</p>}
   </section>
 }
