@@ -314,12 +314,12 @@ The following are proposed improvements, not claims about features already imple
 | Stronger recovery | Support more schema features and independent encrypted backup storage; test recovery after a database failure |
 | Production payments | Add signed webhooks, refunds, support workflows, and live-key approval before accepting actual payments |
 | Better monitoring and alerts | Add external uptime checks, alerting, and service-level objectives based on defined measurements |
-| Request rate limits | Protect against excessive traffic and improve fair resource usage |
+| Network-edge protection | Add managed edge protection and validated client-IP controls alongside application rate limits |
 | Account controls | Add verified email, password recovery, account status management, and stronger admin authentication |
 | Privacy controls | Let learners choose their public leaderboard display name or participation preference |
 | More original learning content | Add more datasets, hints, and feedback without exposing reference solutions |
 | Durable achievement rewards | Introduce defined seasons and persisted awards, with published eligibility rules |
-| Scaling experiments | Test multiple backend instances, shared rate limits, load balancing, and connection-pool limits under measured load |
+| Scaling experiments | Test multiple backend instances, load balancing, and connection-pool limits under measured load |
 | Advanced cloud infrastructure | Explore Kubernetes orchestration and private networking where the hosting plan and syllabus require them |
 
 For the current presentation, focus on the real implemented features. Describe workspace schemas as logical isolation and payment as Razorpay test mode. Kubernetes, separate virtual machines, VPC/VPN networking, real charges, and automatic infrastructure scaling would require additional work.
@@ -333,3 +333,14 @@ For local development, set the database environment variables as usual, then run
 Flow: learner creates order, completes hosted checkout, backend verifies HMAC-SHA256 and captured status, PostgreSQL records payment and activates Pro atomically. The administrator can inspect Payments after refreshing. A lost callback is recovered by the learner's Check status action; automatic webhook recovery is future work. Displayed amounts are test-mode amounts, not real revenue.
 
 Provider documentation: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/
+
+### Cloud security controls
+
+- **Login protection:** ten failed attempts for the same normalized email within a rolling fifteen-minute window temporarily block further sign-ins. A successful login clears failures; old failures expire. Failed and blocked sign-ins appear in the security report without disclosing attempted email addresses.
+- **Shared API rate limits:** each authenticated account gets 120 requests per UTC minute by default. Anonymous API traffic shares a separate 120-request allowance; client-supplied IP headers are not trusted. Atomic PostgreSQL counters enforce the allowance across backend instances and survive restarts. A minute boundary resets the allowance, so this is a fixed-window limit rather than smooth traffic shaping. Health checks, CORS preflights, and sign-out are exempt. HTTP 429 responses include `Retry-After`. Set `API_REQUESTS_PER_MINUTE` (10–10000) on Render to change the allowance. Old counters are removed hourly after 24 hours.
+- **Session management:** open **Settings → Active sessions** to see sign-in and expiry times and revoke another session. Revocation prevents subsequent authenticated requests from that sign-in; it cannot cancel an already-running request. The current session uses the normal Sign out action. Session identifiers are separate from the secret cookie and its stored authentication hash. Both learners and administrators can manage only their own sessions.
+- **Admin Security tab:** real totals for failed sign-ins, blocked sign-ins, rate-limited requests, revocations, and current active sessions; the latest 100 security events from the last 24 hours. Anonymous events have no identified account. Rate-limit audit events are sampled once per subject/minute while counters retain every denied request. Use Refresh to update the report.
+
+These features demonstrate authentication, authorization, resource protection, and security monitoring from syllabus Units V and VI. They are application controls, not a VPC, firewall, complete cloud IAM service, or DDoS protection. No external security service or new secret is required. Schema initialization adds the necessary tables and session identifiers idempotently.
+
+Demo: sign in from two independent browser sessions, revoke the other under Settings, and show that its next protected API request is rejected. Show **Admin → Security** for recorded events. Use automated tests for burst traffic and lockout verification instead of disrupting ordinary demo users.

@@ -5,6 +5,16 @@ import handler from '../../api/proxy.mjs'
 const originalFetch = globalThis.fetch
 const originalBackend = process.env.BACKEND_API_URL
 const originalViteBackend = process.env.VITE_API_BASE_URL
+test('forwards security and session routes and preserves rate-limit retry headers', async () => {
+  process.env.BACKEND_API_URL = 'https://backend.example'
+  for (const path of ['auth/sessions', 'auth/sessions/12345678-1234-1234-1234-123456789abc', 'admin/security']) {
+    globalThis.fetch = async () => new Response('{"error":"Rate limited"}', { status: 429, headers: { 'retry-after': '30' } })
+    const result = response()
+    await handler({ method: 'GET', query: { path }, headers: {} }, result)
+    assert.equal(result.code, 429)
+    assert.equal(result.headers['retry-after'], '30')
+  }
+})
 test('allows payment checkout, recovery and admin history through the fixed backend', async () => {
   process.env.BACKEND_API_URL = 'https://backend.example'
   for (const path of ['billing/orders', 'billing/verify', 'billing/payments', 'billing/orders/order_test123/refresh', 'admin/payments']) {

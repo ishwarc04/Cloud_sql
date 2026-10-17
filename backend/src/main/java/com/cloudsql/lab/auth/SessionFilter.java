@@ -18,8 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class SessionFilter extends OncePerRequestFilter {
     private final AuthService auth;
     private final Set<String> origins;
-    public SessionFilter(AuthService auth, @Value("${cloudsql.cors.allowed-origins}") String allowed) {
+    private final ApiRateLimiter rateLimiter;
+    public SessionFilter(AuthService auth, ApiRateLimiter rateLimiter, @Value("${cloudsql.cors.allowed-origins}") String allowed) {
         this.auth = auth;
+        this.rateLimiter = rateLimiter;
         origins = Arrays.stream(allowed.split(",")).map(String::trim).collect(Collectors.toSet());
         if (origins.stream().anyMatch(origin -> origin.contains("*") || !origin.matches("https?://[^/]+")))
             throw new IllegalArgumentException("CORS requires exact HTTP(S) origins");
@@ -43,6 +45,13 @@ public class SessionFilter extends OncePerRequestFilter {
         }
         Account account = auth.resolve(token(request));
         request.setAttribute("account", account);
+        if (!path.equals("/api/health") && !path.equals("/api/auth/logout")) {
+            String subject = account == null ? "ANONYMOUS" : account.id();
+            if (!rateLimiter.allow(subject, account == null ? null : account.id())) {
+                response.setHeader("Retry-After", String.valueOf(60 - java.time.Instant.now().getEpochSecond() % 60));
+                error(response, 429, "Request limit reached. Please wait up to one minute and retry."); return;
+            }
+        }
         boolean publicPath = path.equals("/api/health") || path.equals("/api/auth/login") || path.equals("/api/auth/signup") || path.equals("/api/auth/logout");
         if (!publicPath && account == null) { error(response, 401, "Please sign in to continue."); return; }
         if (path.startsWith("/api/admin") && !"ADMIN".equals(account.role())) { error(response, 403, "Administrator access required."); return; }

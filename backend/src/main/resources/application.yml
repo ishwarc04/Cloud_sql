@@ -19,6 +19,8 @@ server:
   port: ${PORT:8080}
 
 cloudsql:
+  security:
+    requests-per-minute: ${API_REQUESTS_PER_MINUTE:120}
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:true}
     cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}

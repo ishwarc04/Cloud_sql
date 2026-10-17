@@ -121,6 +121,15 @@ CREATE TABLE IF NOT EXISTS platform.payment_orders (
   paid_at TIMESTAMP WITH TIME ZONE
 );
 CREATE INDEX IF NOT EXISTS idx_payment_orders_user ON platform.payment_orders(user_id, created_at);
+ALTER TABLE platform.sessions ADD COLUMN IF NOT EXISTS session_id VARCHAR(36);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_session_id ON platform.sessions(session_id);
+CREATE TABLE IF NOT EXISTS platform.api_limits (
+  subject VARCHAR(40) NOT NULL,
+  bucket_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  requests INTEGER NOT NULL,
+  blocked INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (subject, bucket_start)
+);
 CREATE TABLE IF NOT EXISTS platform.demo_payments (
   user_id VARCHAR(36) NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
   request_id VARCHAR(36) NOT NULL,

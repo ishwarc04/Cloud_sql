@@ -7,8 +7,9 @@ import { formatBytes, storagePercent } from '../features/databases/format'
 import { AdminCreatePanel } from '../features/admin/AdminCreatePanel'
 import { AdminPaymentsPanel } from '../features/admin/AdminPaymentsPanel'
 import { CloudOperationsPanel } from '../features/admin/CloudOperationsPanel'
+import { AdminSecurityPanel } from '../features/admin/AdminSecurityPanel'
 
-type Tab = 'Overview' | 'People' | 'Workspaces' | 'Problems' | 'Activity' | 'Cloud' | 'Payments'
+type Tab = 'Overview' | 'People' | 'Workspaces' | 'Problems' | 'Activity' | 'Cloud' | 'Payments' | 'Security'
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : 'No submissions yet'
 const count = (value: number) => value.toLocaleString()
 function Outcome({ value }: { value: string }) {
@@ -71,7 +72,8 @@ export function AdminDashboardPage() {
     <div className="ops-snapshot"><span>Updated {date(data.generatedAt)}</span><span>Persisted platform snapshot · {s.databaseLatencyMs} ms database probe</span></div>
     {error && <div className="database-alert" role="alert">Refresh failed: {error}. Showing the last successful snapshot.<button onClick={refresh}>Retry</button></div>}
     <div className="ops-metrics">{cards.map(card => <article className="ops-card" key={card.label}><span className="ops-metric-label"><Icon name={card.icon} />{card.label}</span><strong>{card.value}</strong><small>{card.detail}</small></article>)}</div>
-    <nav className="ops-tabs" aria-label="Admin views">{(['Overview', 'People', 'Workspaces', 'Problems', 'Activity', 'Cloud', 'Payments'] as Tab[]).map(value => <button key={value} aria-current={tab === value ? 'page' : undefined} onClick={() => { setTab(value); setSearch(''); setFilter('All') }}>{value}{value === 'People' && <span>{s.totalUsers}</span>}{value === 'Workspaces' && <span>{s.totalWorkspaces}</span>}</button>)}</nav>
+    <nav className="ops-tabs" aria-label="Admin views">{(['Overview', 'People', 'Workspaces', 'Problems', 'Activity', 'Cloud', 'Payments', 'Security'] as Tab[]).map(value => <button key={value} aria-current={tab === value ? 'page' : undefined} onClick={() => { setTab(value); setSearch(''); setFilter('All') }}>{value}{value === 'People' && <span>{s.totalUsers}</span>}{value === 'Workspaces' && <span>{s.totalWorkspaces}</span>}</button>)}</nav>
+    {tab === 'Security' && <AdminSecurityPanel revision={revision} />}
     {tab === 'Payments' && <AdminPaymentsPanel revision={revision} />}
     {tab === 'Cloud' && <CloudOperationsPanel revision={revision} />}
     {tab === 'Overview' && <>

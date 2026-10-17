@@ -3,7 +3,7 @@ export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
   response.setHeader('X-Content-Type-Options', 'nosniff')
   const path = request.query?.path
-  if (typeof path !== 'string' || !/^(auth\/(signup|login|logout|me)|health|dashboard|leaderboard|billing(?:\/(?:upgrade|orders|verify|payments|orders\/order_[A-Za-z0-9]+\/refresh))?|problems(?:\/\d+(?:\/(execute|submit))?)?|databases(?:\/[a-f0-9-]+(?:\/(execute|schema|backups))?)?|backups(?:\/[a-f0-9-]+(?:\/restore)?)?|admin\/(overview|databases|analytics|payments|cloud(?:\/probe)?|problems|users(?:\/[a-f0-9-]+)?))$/.test(path)) {
+  if (typeof path !== 'string' || !/^(auth\/(signup|login|logout|me|sessions(?:\/[a-f0-9-]{36})?)|health|dashboard|leaderboard|billing(?:\/(?:upgrade|orders|verify|payments|orders\/order_[A-Za-z0-9]+\/refresh))?|problems(?:\/\d+(?:\/(execute|submit))?)?|databases(?:\/[a-f0-9-]+(?:\/(execute|schema|backups))?)?|backups(?:\/[a-f0-9-]+(?:\/restore)?)?|admin\/(overview|databases|analytics|payments|security|cloud(?:\/probe)?|problems|users(?:\/[a-f0-9-]+)?))$/.test(path)) {
     return response.status(404).json({ error: 'API route not found.' })
   }
   if (!['GET', 'POST', 'DELETE', 'OPTIONS', 'HEAD'].includes(request.method)) {
@@ -26,7 +26,7 @@ export default async function handler(request, response) {
       ...(!['GET', 'HEAD'].includes(request.method) && request.body != null ? { body: typeof request.body === 'string' ? request.body : JSON.stringify(request.body) } : {}),
     })
     // Only forward application and cookie headers; never upstream redirects or cache policies.
-    for (const name of ['content-type', 'access-control-allow-origin', 'access-control-allow-credentials', 'access-control-allow-methods', 'access-control-allow-headers', 'vary']) {
+    for (const name of ['retry-after', 'content-type', 'access-control-allow-origin', 'access-control-allow-credentials', 'access-control-allow-methods', 'access-control-allow-headers', 'vary']) {
       const value = result.headers.get(name)
       if (value) response.setHeader(name, value)
     }

@@ -55,7 +55,10 @@ public class AuthService {
         // Persisted rolling limit survives process restarts; never log credentials.
         Integer failures = jdbc.queryForObject("SELECT COUNT(*) FROM platform.login_failures WHERE email = ? AND attempted_at > ?",
                 Integer.class, normalized, Timestamp.from(Instant.now().minus(Duration.ofMinutes(15))));
-        if (failures != null && failures >= 10) throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts. Try again in 15 minutes.");
+        if (failures != null && failures >= 10) {
+            audit.record(null, "LOGIN_BLOCKED", "AUTH", "BLOCKED");
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts. Try again in 15 minutes.");
+        }
         var users = jdbc.query("SELECT id, name, email, role, password_hash FROM platform.users WHERE email = ?",
                 (rs, row) -> new Credentials(new Account(rs.getString("id"), rs.getString("name"), rs.getString("email"), rs.getString("role")), rs.getString("password_hash")), normalized);
         boolean matched = passwords.matches(password, users.isEmpty() ? dummyHash : users.getFirst().hash());
@@ -75,8 +78,8 @@ public class AuthService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         jdbc.update("DELETE FROM platform.sessions WHERE expires_at <= ?", Timestamp.from(Instant.now()));
         jdbc.update("DELETE FROM platform.login_failures WHERE attempted_at <= ?", Timestamp.from(Instant.now().minus(Duration.ofMinutes(15))));
-        jdbc.update("INSERT INTO platform.sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
-                digest(token), user.id(), Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plus(Duration.ofHours(sessionHours))));
+        jdbc.update("INSERT INTO platform.sessions (token_hash, user_id, created_at, expires_at, session_id) VALUES (?, ?, ?, ?, ?)",
+                digest(token), user.id(), Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plus(Duration.ofHours(sessionHours))), UUID.randomUUID().toString());
         return token;
     }
 
@@ -95,7 +98,7 @@ public class AuthService {
     public long sessionSeconds() { return sessionHours * 3600; }
     public static String normalize(String email) { return email.trim().toLowerCase(Locale.ROOT); }
     private record Credentials(Account account, String hash) { }
-    private static String digest(String token) {
+    static String digest(String token) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))); }
         catch (Exception exception) { throw new IllegalStateException(exception); }
     }

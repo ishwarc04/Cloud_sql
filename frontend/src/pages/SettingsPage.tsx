@@ -1,4 +1,5 @@
 import { useTheme, type ThemePreference } from '../app/theme/ThemeContext'
+import { ActiveSessions } from '../features/auth/ActiveSessions'
 
 const themes: Array<{ value: ThemePreference; label: string; description: string }> = [
   { value: 'system', label: 'System', description: 'Follow device setting' },
@@ -18,5 +19,6 @@ export function SettingsPage() {
         </div>
       </section>
     </div>
+    <ActiveSessions />
   </section>
 }
