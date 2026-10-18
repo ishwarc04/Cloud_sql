@@ -26,10 +26,11 @@ public class ApiRateLimiter {
         if (jdbc.update("UPDATE platform.api_limits SET requests=requests+1 WHERE subject=? AND bucket_start=? AND requests < ?",subject,bucket,limit)==1) return true;
         if (jdbc.queryForObject("SELECT COUNT(*) FROM platform.api_limits WHERE subject=? AND bucket_start=?",Integer.class,subject,bucket)==0) {
             try { jdbc.update("INSERT INTO platform.api_limits (subject,bucket_start,requests,blocked) VALUES (?,?,1,0)",subject,bucket); return true; }
-            catch (DuplicateKeyException race) {
-                if (jdbc.update("UPDATE platform.api_limits SET requests=requests+1 WHERE subject=? AND bucket_start=? AND requests < ?",subject,bucket,limit)==1) return true;
-            }
+            catch (DuplicateKeyException race) { /* Another instance created this minute's counter. */ }
         }
+        // A concurrent request may create the row between our initial UPDATE and SELECT.
+        // Retry the atomic increment before treating an existing counter as exhausted.
+        if (jdbc.update("UPDATE platform.api_limits SET requests=requests+1 WHERE subject=? AND bucket_start=? AND requests < ?",subject,bucket,limit)==1) return true;
         // One audit event per subject/minute; repeated denials remain counted without flooding the audit table.
         if (jdbc.update("UPDATE platform.api_limits SET blocked=1 WHERE subject=? AND bucket_start=? AND blocked=0",subject,bucket)==1)
             audit.record(actor,"API_RATE_LIMITED","API","BLOCKED");
